@@ -8,10 +8,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from survival_evals.agents import AgentFailure, CallBudget, CommandAgent, ChatAgent, Reply, decode_decision, request_for, validate_config
-from survival_evals.engine import StationEnv
-from survival_evals.replay import render_replay, seat_record
-from survival_evals.runner import parse_probe, run_batch, run_episode, summarize
+from shared_survival_eval.agents import AgentFailure, CallBudget, CommandAgent, ChatAgent, Reply, decode_decision, request_for, validate_config
+from shared_survival_eval.engine import StationEnv
+from shared_survival_eval.replay import render_replay, seat_record
+from shared_survival_eval.runner import parse_probe, run_batch, run_episode, summarize
 
 
 PLAN = {"agents": {"a": {"type": "baseline", "name": "cooperative"}, "b": {"type": "baseline", "name": "selfish"}},
@@ -59,7 +59,7 @@ class RunnerTests(unittest.TestCase):
             first = run_batch(PLAN, out, [0, 1], rotations=1, max_calls=500)
             paths = list((out / "episodes").glob("*.json"))
             timestamps = {p.name: p.stat().st_mtime_ns for p in paths}
-            with patch("survival_evals.runner.run_episode", side_effect=AssertionError("must not run")):
+            with patch("shared_survival_eval.runner.run_episode", side_effect=AssertionError("must not run")):
                 second = run_batch(PLAN, out, [0, 1], rotations=1, max_calls=500, resume=True)
             self.assertEqual(first, second)
             self.assertEqual(timestamps, {p.name: p.stat().st_mtime_ns for p in paths})
@@ -110,8 +110,8 @@ class RunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
             (path / "plan.json").write_text(json.dumps(plan))
-            result = subprocess.run([sys.executable, "-m", "survival_evals", "run", "--plan", str(path / "plan.json"),
-                                     "--out", str(path / "run"), "--seeds", "1", "--rotations", "1", "--enable-external", "--max-calls", "100"], capture_output=True, text=True)
+            result = subprocess.run([sys.executable, "-m", "shared_survival_eval", "run", "--plan", str(path / "plan.json"),
+                                     "--out", str(path / "run"), "--seeds", "1", "--rotations", "1", "--eval", "both", "--enable-external", "--max-calls", "100"], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             summary = json.loads((path / "run/summary.json").read_text())
             self.assertEqual(len(summary["rows"]), 2)
@@ -167,7 +167,7 @@ class RunnerTests(unittest.TestCase):
                 if phase == "discuss":
                     return Reply({"say": f"r{obs['round']}-s{obs['seat']}", "private": {"to": (obs["seat"] + 1) % 4, "text": "private"}})
                 return Reply({"action": "repair"})
-        with patch("survival_evals.runner.make_agent", return_value=SpyAgent()):
+        with patch("shared_survival_eval.runner.make_agent", return_value=SpyAgent()):
             run_episode(PLAN, "mixed", "shared", 0)
         for obs in seen:
             current = [e for e in obs["history"] if e["round"] == obs["round"]]

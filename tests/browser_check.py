@@ -9,9 +9,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from survival_evals.agents import Baseline
-from survival_evals.replay import render_replay
-from survival_evals.runner import run_episode
+from shared_survival_eval.agents import Baseline
+from shared_survival_eval.replay import render_replay
+from shared_survival_eval.runner import run_episode
 
 
 SCRIPT = r"""
@@ -63,7 +63,7 @@ def main():
                 reply.decision["say"] = "<script>window.injected=true</script>"
             return reply
     plan = {"agents": {"fixture": {"type": "baseline", "name": "cooperative"}}, "crews": {"fixture": ["fixture"] * 4}}
-    with patch("survival_evals.runner.make_agent", side_effect=lambda c, s: TalkingBaseline("cooperative", s)):
+    with patch("shared_survival_eval.runner.make_agent", side_effect=lambda c, s: TalkingBaseline("cooperative", s)):
         record = run_episode(plan, "fixture", "shared", 0)
     html = args.out / "fixture.html"
     render_replay(record, html)

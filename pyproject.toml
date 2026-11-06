@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "survival-evals"
+name = "shared-survival-eval"
 version = "0.1.0"
-description = "Paired multi-agent evaluations of shared survival and individual incentives"
+description = "Evaluate multi-agent cooperation under a common survival and crew-objective reward."
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-survival-evals = "survival_evals.cli:main"
+shared-survival-eval = "shared_survival_eval.cli:main"
 
 [tool.setuptools.package-data]
-survival_evals = ["viewer.html"]
+shared_survival_eval = ["viewer.html"]

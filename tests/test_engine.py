@@ -1,8 +1,8 @@
 import copy
 import unittest
 
-from survival_evals import Scenario, StationEnv
-from survival_evals.agents import Baseline
+from shared_survival_eval import Scenario, StationEnv
+from shared_survival_eval.agents import Baseline
 
 
 class EngineTests(unittest.TestCase):

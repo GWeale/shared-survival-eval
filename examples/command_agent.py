@@ -2,7 +2,7 @@
 import json
 import sys
 
-from survival_evals.agents import Baseline
+from shared_survival_eval.agents import Baseline
 
 request = json.load(sys.stdin)
 reply = Baseline("cooperative", 0).respond(request["observation"], request["phase"])

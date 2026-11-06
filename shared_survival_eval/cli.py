@@ -11,12 +11,12 @@ from .runner import run_batch
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Evaluate shared survival and individual incentives.")
+    parser = argparse.ArgumentParser(description="Evaluate multi-agent cooperation under a common survival and crew-objective reward.")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="run a versioned plan and write paired episode results")
     run.add_argument("--plan", type=Path, required=True)
     run.add_argument("--out", type=Path, required=True)
-    run.add_argument("--eval", choices=["both", *MODES], default="both")
+    run.add_argument("--eval", choices=["both", *MODES], default="shared")
     run.add_argument("--seeds", type=int, default=10, help="number of consecutive scenarios")
     run.add_argument("--seed-start", type=int, default=0)
     run.add_argument("--split", choices=["train", "validation", "test"], default="test")
