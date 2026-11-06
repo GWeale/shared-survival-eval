@@ -22,3 +22,11 @@ Matched scripted anchors include the coordinator, local worker, maintenance-only
 Transport checks passed four complete 72-decision validation games, covering both roles and reward modes. Reassembled incremental observations exactly matched the engine's seat-filtered observations at every step; terminal history recovery and the decision cap passed. These were scripted fixtures, not model results. Game source is unchanged from the reviewed 60-test revisions.
 
 Transport SHA-256: `c230feb7441b7ad1c536922a0b1cfd9c68905d6cf8c696ae6a8e6d5393d743c5`. Control runner SHA-256: `4afe3fa0a368af12c1496000a711a49bd100ddd221ee0e7a054336d22a26b686`. The private manifest is the authoritative pre-run assignment record.
+
+## Authorized resumption after the transport interruption
+
+The initial execution stopped after two completed episodes recorded provider network errors. A third affected episode was interrupted by the supervisor at round 22, after 42 accepted decisions. Nine games had completed. Their scores and all runtime failures remain in the record.
+
+The user subsequently requested another attempt. Resume the interrupted episode in its original participant context and saved world, with the same Astra/high/default settings. Do not replay accepted decisions, reset the 72-decision cap, change scenarios or rules, or rerun completed games. This resumed episode must be identified in the final analysis.
+
+Use that continuation as a bounded recovery check. Only after it completes without new infrastructure or information-boundary failures should the remaining 22 frozen assignments proceed, with at most three active participants. A new blocking recovery failure pauses expansion for diagnosis; the original stop criteria apply to new faults after resumption. Historical errors remain included in reliability reporting. This amendment was recorded before resuming inference; it does not erase the original stopping event or turn interrupted runs into clean executions.
