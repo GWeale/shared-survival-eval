@@ -14,7 +14,7 @@ python -m shared_survival_eval.harbor export \
 
 The destination must be new. Export is staged and renamed only after successful generation. The bundle includes `instruction.md`, `task.toml`, agent and station container definitions, `solution/solve.sh`, a dedicated verifier image, and `tests/test.sh`. The generated provenance file records the source fingerprint, exact scenario specification, upstream Harbor revision and image digest. Keep fresh evaluation specifications and exported bundles private: published example seed 83 is development material.
 
-Use the pinned Harbor source on a machine with Docker Engine and Compose v2. Harbor itself needs Python 3.12+; the benchmark package does not depend on Harbor. From that environment:
+Use the pinned Harbor source on a machine with Docker Engine, Compose v2, and the Docker Buildx plugin. Check `docker buildx version` before running: Harbor uses Buildx to build the clean verifier. Harbor itself needs Python 3.12+; the benchmark package does not depend on Harbor. From that environment:
 
 ```sh
 harbor run -p ../harbor-shared-focal -a oracle
@@ -24,7 +24,7 @@ The reference policy plays through the same focal RPC as a model. A real model r
 
 ## Trust boundary
 
-The `main` container holds only the player client. The `station` sidecar owns the engine, hidden scenario, other-seat observations, pending state and canonical transcript. Its API provides only `GET /observation`, `GET /health`, and `POST /submit` for one fixed focal seat. Random decision IDs bind accepted actions to that live game; identical retries do not advance it twice. There is no reset, cross-seat, arbitrary-file or score-submission endpoint. Requests are bounded and processed serially.
+The main, station and verifier workloads each declare a 1 CPU / 1 GiB limit. Harbor-created auxiliary services retain Harbor's defaults and need separate operator capacity planning. The `main` container holds only the player client. The `station` sidecar owns the engine, hidden scenario, other-seat observations, pending state and canonical transcript. Its API provides only `GET /observation`, `GET /health`, and `POST /submit` for one fixed focal seat. Random decision IDs bind accepted actions to that live game; identical retries do not advance it twice. There is no reset, cross-seat, arbitrary-file or score-submission endpoint. Requests are bounded and processed serially.
 
 Harbor collects `/evidence/record.json` **from the station service**, then places it in a fresh verifier container. The verifier checks task/source identity, regenerates scripted decisions, replays the episode and derives the terminal reward. Incomplete, inconsistent or modified evidence produces a verification error with no reward file. Model failures and verifier failures must remain separate from simulated station deaths, whose reward is −1.
 
@@ -32,7 +32,7 @@ Do not override artifact declarations, expose Docker sockets, share evaluator vo
 
 ## Evidence and training scope
 
-Both exports load through the pinned upstream `Task` and `TaskConfig` models. Local tests cover focal replay, modified scores and background actions, incomplete evidence, token separation, reward math and adapter failures. Container execution and artifact transfer are a separate acceptance gate; see the [audit disposition](harness-audit-2026-11-06.md) for its current status.
+Both exports load through the pinned upstream `Task` and `TaskConfig` models. Local tests cover focal replay, modified scores and background actions, incomplete evidence, token separation, reward math and adapter failures. Both reward modes completed actual Harbor oracle trials with separate clean verifiers and accepted reward 1.0. A combined forged-file/symlink fixture preserved that reward, and forged-only incomplete play received no reward. Docker rejected the escaping symlink before untrusted artifact collection completed, so plain forged-file ingestion still needs a separate check; see the [audit disposition](harness-audit-2026-11-06.md) for its current status.
 
 The game artifact is `harbor-focal-v1` replay evidence, not ATIF. A compatible Harbor focal agent may produce its own ATIF trajectory. Do not infer original sampled tokens, tokenizer identity, log probabilities or loss masks from decoded JSON decisions or usage counts. A training backend must capture those values directly and exclude observations and scripted actions from its loss. No token-level training export or learning result is claimed here.
 
