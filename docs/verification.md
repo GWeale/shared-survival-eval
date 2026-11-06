@@ -2,7 +2,15 @@
 
 Verified on George’s MacBook Pro with Python 3.13.18. Runtime dependencies: Python standard library. These checks concern the implementation and scripted controls, not learned model capability.
 
-## Repository packaging verification
+## V2 verification
+
+Both independent packages pass **47 tests**, including 19 V2 checks. The V2 checks cover hidden information, delayed jobs, permanent deadline damage, component arrival timing, escrow, credit conservation, simultaneous decisions, critical-role free-riding, source-locked sessions, resumable budgets, and checkpoint evaluation.
+
+The frozen scripted calibration completed **1,200 episodes**, with 100 independent scenarios per tier/policy and no invalid decisions. The observation-only planner survived all tested scenarios; this establishes a feasible policy on those scenarios, not full-game optimality. See [calibration provenance and aggregates](v2-calibration.json). No V2 LLM comparison or RL training has run.
+
+V2 public-CLI checks completed both reward modes, mixed partner populations, prediction probes, and checkpoint evaluation. The replay was inspected with the isolated renderer at 728 and 390 pixels, including action and terminal frames. No installed local browser was launched for V2. The lead performed focused review; no independent hidden reviewer was available.
+
+## V1 repository packaging verification (historical)
 
 This repository has its own `shared_survival_eval` package and defaults to `shared`. All **25 tests passed** after the split, including the original behavior checks and a public-CLI regression check confirming that the default runs only this repository’s eval. The paired control path remains covered by the command-agent CLI test with `--eval both`.
 
@@ -45,7 +53,7 @@ python3 -m shared_survival_eval run --plan examples/baselines.json --eval both \
   --out ../eval-runs/reproduce --seeds 20 --rotations 4 --probes --resume
 ```
 
-Optional local browser checks require Chrome and create temporary, isolated profiles:
+The legacy browser check below is for an explicitly approved browser host. Agents must not launch installed Chrome/Chromium on George’s MacBook; use the isolated renderer there:
 
 ```sh
 python3 -m tests.browser_check --chrome /path/to/chrome --out ../eval-runs/ui

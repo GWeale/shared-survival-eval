@@ -1,0 +1,169 @@
+{
+  "protocol": "station-v2",
+  "source_hash": "e80a5e00efd4898ec50d3f2ee5b74bec0337dc8b3300feaf90ddaf75f9571cb3",
+  "split": "test",
+  "seeds": [
+    10000,
+    10099
+  ],
+  "note": "Scripted policy calibration; no LLMs or training. Homogeneous teams; rotations would repeat the identical policy assignment. No model ranking is inferred. Report development/calibration/test provenance separately for each use.",
+  "rows": [
+    {
+      "tier": "intro",
+      "policy": "planner",
+      "scenarios": 100,
+      "survived": 100,
+      "invalid": 0,
+      "survival_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "tier": "intro",
+      "policy": "reactive",
+      "scenarios": 100,
+      "survived": 100,
+      "invalid": 0,
+      "survival_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "tier": "intro",
+      "policy": "greedy",
+      "scenarios": 100,
+      "survived": 68,
+      "invalid": 0,
+      "survival_ci95": [
+        0.59,
+        0.77
+      ]
+    },
+    {
+      "tier": "standard",
+      "policy": "planner",
+      "scenarios": 100,
+      "survived": 100,
+      "invalid": 0,
+      "survival_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "tier": "standard",
+      "policy": "reactive",
+      "scenarios": 100,
+      "survived": 94,
+      "invalid": 0,
+      "survival_ci95": [
+        0.89,
+        0.98
+      ]
+    },
+    {
+      "tier": "standard",
+      "policy": "greedy",
+      "scenarios": 100,
+      "survived": 0,
+      "invalid": 0,
+      "survival_ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "tier": "hard",
+      "policy": "planner",
+      "scenarios": 100,
+      "survived": 100,
+      "invalid": 0,
+      "survival_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "tier": "hard",
+      "policy": "reactive",
+      "scenarios": 100,
+      "survived": 5,
+      "invalid": 0,
+      "survival_ci95": [
+        0.01,
+        0.1
+      ]
+    },
+    {
+      "tier": "hard",
+      "policy": "greedy",
+      "scenarios": 100,
+      "survived": 0,
+      "invalid": 0,
+      "survival_ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "tier": "extreme",
+      "policy": "planner",
+      "scenarios": 100,
+      "survived": 100,
+      "invalid": 0,
+      "survival_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "tier": "extreme",
+      "policy": "reactive",
+      "scenarios": 100,
+      "survived": 0,
+      "invalid": 0,
+      "survival_ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "tier": "extreme",
+      "policy": "greedy",
+      "scenarios": 100,
+      "survived": 0,
+      "invalid": 0,
+      "survival_ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "reference_failures": [],
+  "source_package": "shared_survival_eval",
+  "development": {
+    "split": "validation",
+    "seeds": [
+      0,
+      19
+    ],
+    "purpose": "Mechanics and baseline development before freezing this calibration run."
+  },
+  "calibration": {
+    "eval": "shared",
+    "episodes": 1200,
+    "independent_seeds_per_comparison": 100,
+    "mechanics_frozen_before_run": true,
+    "training_performed": false,
+    "llm_calls": 0
+  },
+  "mirrored_mechanics_sha256": {
+    "v2.py": "bc462249da0137cd0fb8bac45602fb297194b69692cb288ef078e52f321ed695",
+    "v2_policies.py": "fd78f055cd4c30708d5d72dd0d872348f1627824f844ff0ce12f6233a148f87d",
+    "agents.py": "f399bd5fa30eee16c25494f8e628f9c3b3089822b51badef296cf582f6c7d329",
+    "runner.py": "a9ae81488a03d670df51164ba0854a50171b5f84b190c17a7fc42e8f8fdea7db"
+  },
+  "scope": "Executed in shared_survival_eval. These simulation and policy files are byte-identical in individual_incentives_eval; the individual package has separate CLI defaults and source fingerprint. This calibration measures survival under shared rewards, not incentive adaptation."
+}

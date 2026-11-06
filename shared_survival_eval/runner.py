@@ -67,19 +67,28 @@ def parse_probe(value: object) -> dict | None:
 
 def run_episode(plan: dict, crew_name: str, mode: str, seed: int, split: str = "test", rotation: int = 0,
                 replicate: int = 0, communication: str = "full", probes: bool = False,
-                budget: CallBudget | None = None) -> dict:
+                budget: CallBudget | None = None, protocol: str = PROTOCOL, difficulty: str = "standard",
+                config: dict | None = None) -> dict:
     validate_plan(plan)
     if crew_name not in plan["crews"] or mode not in MODES or rotation not in range(4) or replicate < 0:
         raise ValueError("invalid episode assignment")
-    scenario = Scenario.generate(seed, split)
-    env = StationEnv(mode, communication)
+    if protocol == "station-v2":
+        from .v2 import Config, Scenario as ScenarioV2, StationEnv as EnvV2
+        settings = Config(**config) if config is not None else Config.tier(difficulty)
+        scenario = ScenarioV2.generate(seed, split, settings)
+        env = EnvV2(mode, communication, settings)
+    elif protocol == PROTOCOL:
+        scenario = Scenario.generate(seed, split)
+        env = StationEnv(mode, communication)
+    else:
+        raise ValueError("unknown protocol")
     observations = env.reset(scenario=scenario)
     names = plan["crews"][crew_name]
     assignment = [names[(seat - rotation) % 4] for seat in SEATS]
     configs = [plan["agents"][name] for name in assignment]
     agents = [make_agent(configs[s], int.from_bytes(hashlib.sha256(f"{split}:{seed}:{replicate}:{s}".encode()).digest(), "big")) for s in SEATS]
     budget = budget or CallBudget(1000)
-    record = {"protocol": PROTOCOL, "eval": mode, "crew": crew_name, "assignment": assignment,
+    record = {"protocol": protocol, "difficulty": difficulty if protocol == "station-v2" else None, "eval": mode, "crew": crew_name, "assignment": assignment,
               "seed": seed, "split": split, "rotation": rotation, "replicate": replicate,
               "communication": communication, "scenario_hash": scenario.fingerprint,
               "scenario": asdict(scenario), "status": "running", "calls": [], "frames": [], "probes": []}
@@ -150,6 +159,8 @@ def summarize(records: list[dict]) -> dict:
             "cargo_per_battery": lambda r: r["result"]["cargo_per_battery"],
             "wasted_oxygen": lambda r: r["result"]["wasted_oxygen"],
         }.items():
+            if entries and entries[0]["protocol"] == "station-v2" and name in ("cargo_per_battery", "wasted_oxygen"):
+                continue
             samples: dict[int, list[float]] = {}
             for r in completed:
                 samples.setdefault(r["seed"], []).append(extract(r))
@@ -163,6 +174,9 @@ def summarize(records: list[dict]) -> dict:
                                   "mean_reward": statistics.mean(v["reward"] for v in values),
                                   "realized_objective_completion": statistics.mean(v["objective_completion"] if v["survived"] else 0 for v in values)}
                             for name, values in row["per_agent"].items()}
+        if entries and entries[0]["protocol"] == "station-v2":
+            row["mechanisms"] = {key: statistics.mean(r["result"][key] for r in completed) if completed else None
+                                 for key in ("successful_repairs", "inspections", "trades", "gifts", "fabrications")}
         commitments = sum(r["result"]["commitments"] for r in completed)
         row["commitment_fulfillment"] = sum(r["result"]["fulfilled"] for r in completed) / commitments if commitments else None
         row["invalid_decisions"] = sum(r["result"]["invalid_decisions"] for r in completed)
@@ -202,13 +216,14 @@ def summarize(records: list[dict]) -> dict:
         comparisons.append({"crew": crew, "metric": "individual_minus_shared_survival", "complete_pairs": available,
                             "unpaired_or_error": missing, "mean": statistics.mean([statistics.mean(v) for v in samples.values()]) if samples else None,
                             "ci95": interval_by_seed(samples)})
-    return {"protocol": PROTOCOL, "rows": rows, "paired_comparisons": comparisons,
+    return {"protocol": records[0]["protocol"] if records else PROTOCOL, "rows": rows, "paired_comparisons": comparisons,
             "uncertainty": "95% percentile bootstrap over scenario blocks, 1000 resamples; rotations and replicates stay together. Intervals require at least two seeds and describe scenario variation, not broad capability or training effectiveness. Errors are reported separately and excluded from outcome means."}
 
 
 def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", rotations: int = 4,
               repeats: int = 1, modes: tuple[str, ...] = MODES, communication: str = "full", probes: bool = False,
-              max_calls: int = 100_000, enable_external: bool = False, resume: bool = False) -> dict:
+              max_calls: int = 100_000, enable_external: bool = False, resume: bool = False,
+              protocol: str = PROTOCOL, difficulty: str = "standard", config: dict | None = None) -> dict:
     validate_plan(plan)
     if (not seeds or len(set(seeds)) != len(seeds) or any(type(s) is not int or s < 0 for s in seeds)
             or rotations not in range(1, 5) or repeats < 1 or split not in SPLITS
@@ -218,7 +233,13 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
     external = any(c["type"] != "baseline" for c in plan["agents"].values())
     if external and not enable_external:
         raise ValueError("command/chat agents require --enable-external; remote models may incur charges")
-    manifest = {"protocol": PROTOCOL, "source_hash": source_hash(), "plan": plan, "seeds": seeds,
+    if protocol not in (PROTOCOL, "station-v2"):
+        raise ValueError("unknown protocol")
+    if protocol == "station-v2":
+        from .v2 import Config
+        settings = Config(**config) if config is not None else Config.tier(difficulty)
+        config = asdict(settings)
+    manifest = {"protocol": protocol, "difficulty": difficulty, "config": config, "source_hash": source_hash(), "plan": plan, "seeds": seeds,
                 "split": split, "rotations": rotations, "repeats": repeats, "evals": list(modes),
                 "communication": communication, "probes": probes, "max_calls": max_calls,
                 "agent_execution": "external_enabled" if external else "local_baselines"}
@@ -262,15 +283,16 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
                             path = out / "episodes" / name
                             if path.exists():
                                 record = json.loads(path.read_text())
-                                if any(record.get(k) != v for k, v in {"protocol": PROTOCOL, "eval": mode, "crew": crew, "seed": seed, "split": split,
+                                if any(record.get(k) != v for k, v in {"protocol": protocol, "eval": mode, "crew": crew, "seed": seed, "split": split,
                                                                        "rotation": rotation, "replicate": replicate, "communication": communication}.items()):
                                     raise ValueError("saved episode identity differs from manifest")
                             else:
-                                record = run_episode(plan, crew, mode, seed, split, rotation, replicate, communication, probes, budget)
+                                record = run_episode(plan, crew, mode, seed, split, rotation, replicate, communication, probes, budget, protocol, difficulty, config)
                                 persist_budget(budget.calls)
                                 atomic_json(path, record)
                             records.append(record)
         summary = summarize(records)
+        summary["protocol"] = protocol
         summary["manifest"] = manifest
         summary["budget"] = {"attempted_calls": budget.calls, "max_calls": max_calls,
                              "attempts_without_episode_record": budget.calls - sum(r.get("attempted_calls", 0) for r in records)}

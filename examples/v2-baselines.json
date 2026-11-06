@@ -1,0 +1,60 @@
+{
+  "agents": {
+    "planner": {
+      "type": "baseline",
+      "name": "planner"
+    },
+    "greedy": {
+      "type": "baseline",
+      "name": "greedy"
+    },
+    "reactive": {
+      "type": "baseline",
+      "name": "reactive"
+    },
+    "reciprocal": {
+      "type": "baseline",
+      "name": "reciprocal"
+    },
+    "opportunist": {
+      "type": "baseline",
+      "name": "opportunist"
+    },
+    "deceptive": {
+      "type": "baseline",
+      "name": "deceptive"
+    }
+  },
+  "crews": {
+    "planners": [
+      "planner",
+      "planner",
+      "planner",
+      "planner"
+    ],
+    "greedy": [
+      "greedy",
+      "greedy",
+      "greedy",
+      "greedy"
+    ],
+    "reactive": [
+      "reactive",
+      "reactive",
+      "reactive",
+      "reactive"
+    ],
+    "mixed": [
+      "planner",
+      "planner",
+      "reciprocal",
+      "opportunist"
+    ],
+    "misinformation": [
+      "planner",
+      "planner",
+      "planner",
+      "deceptive"
+    ]
+  }
+}
