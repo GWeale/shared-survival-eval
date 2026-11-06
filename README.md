@@ -31,6 +31,6 @@ The default eval is `shared`. The alternative reward scheme remains available th
 - Survival and objective metrics, resource accounting, and scenario-bootstrap intervals.
 - Offline HTML replays and physically redacted seat exports.
 
-External model adapters require explicit opt-in and can incur charges. Keep runtime logs outside Git. The included results use scripted policies; no live LLM evaluation or RL training has been performed.
+External model adapters require explicit opt-in and can incur charges. Keep runtime logs outside Git. The included results cover scripted baselines and an exploratory GPT subscription pilot: 15 of 16 model games completed. No RL training has been performed. See the [pilot results and chart](docs/pilot-results.md) for outcomes and limitations.
 
 [Protocol](docs/protocol.md) · [Model adapters, evaluation plans, and RL API](docs/usage.md) · [Verification](docs/verification.md)

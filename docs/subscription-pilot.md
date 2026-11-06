@@ -36,3 +36,7 @@ The state file and `export_record` output are evaluator-only data. Players must 
 This is an initial test of one model player with fixed peers. Two scenarios cannot support a capability ranking or a stable uncertainty interval. Seat and scenario vary together; comparisons are matched across models, but do not estimate seat effects independently. Coding-agent system instructions, tool use, and conversation memory are part of the evaluated setup. Subscription usage is not zero cost; token billing and limits must not be inferred from missing usage data. No paid API fallback is allowed for this pilot.
 
 Raw prompts, transcripts, state, and orchestration identifiers stay outside Git. Publish only sanitized outcomes, source fingerprints, methodology, and aggregate charts after the run is audited.
+
+## Observed pilot results
+
+The 16 scheduled sessions have finished: 15 complete games, one early stop, and no invalid moves. See [results and limitations](pilot-results.md), [per-game data](pilot-results.json), and the [chart](pilot-results.html).
