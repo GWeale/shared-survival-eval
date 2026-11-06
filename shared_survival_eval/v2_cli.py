@@ -8,6 +8,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from .agents import Baseline, request_for
+from .session_lock import serialized
 from .runner import atomic_json, run_batch, source_hash
 from .v2 import Config, StationEnv, TIERS
 
@@ -27,13 +28,15 @@ def envelope(state, env, seat):
     return {'done':False,'waiting':str(seat) in state['pending'],'decision_id':token,**request_for(env.observe(seat),env.phase)}
 
 
-def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', communication='full', focal=None, background='planner', workload='solo'):
+@serialized
+def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', communication='full', focal=None, background='planner', workload='solo', allocation=False):
     if path.exists():raise ValueError('session already exists')
     if focal is not None and (type(focal) is not int or focal not in range(4)):raise ValueError('invalid focal seat')
-    if background not in ('planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'):raise ValueError('invalid background')
+    from .allocation import POLICIES
+    if background not in (*POLICIES, 'planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'):raise ValueError('invalid background')
     if workload == 'joint' and background in ('reactive','reciprocal'):
         raise ValueError('joint sessions require a joint-compatible background policy')
-    config=replace(Config.tier(difficulty), workload=workload)
+    config=replace(Config.tier(difficulty), workload=workload, allocation=allocation)
     env=StationEnv(mode,communication,config);env.reset(seed,split)
     state={'protocol':'station-v2','source_hash':source_hash(),'mode':mode,'seed':seed,'split':split,
            'communication':communication,'config':asdict(config),'focal':focal,'background':background,
@@ -42,39 +45,35 @@ def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', 
     return {'created':True,'seats':list(range(4)) if focal is None else [focal]}
 
 
+@serialized
 def submit(path, seat, reply):
-    lock=path.with_suffix(path.suffix+'.lock')
-    try:fd=os.open(lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
-    except FileExistsError:raise ValueError('session is being updated; retry the same envelope') from None
-    try:
-        os.close(fd)
-        state=json.loads(path.read_text());env=restore(state)
-        if not isinstance(reply,dict) or set(reply)!={'decision_id','decision'}:raise ValueError('expected decision_id and decision')
-        token=reply['decision_id']
-        if not isinstance(token,str):raise ValueError('decision_id must be text')
-        if state['focal'] is not None and state['focal']!=seat:raise ValueError('only focal seat accepts external input')
-        if token in state['accepted']:
-            prior=state['accepted'][token]
-            if prior!={'seat':seat,'decision':reply['decision']}:raise ValueError('cannot revise accepted input')
-            return envelope(state,env,seat)
-        current=envelope(state,env,seat)
-        if current['done'] or current['decision_id']!=token:raise ValueError('stale or wrong decision_id')
-        state['pending'][str(seat)]=reply['decision']
-        state['accepted'][token]={'seat':seat,'decision':reply['decision']}
-        if state['focal'] is not None:
-            for s in range(4):
-                if s!=seat:state['pending'][str(s)]=Baseline(state['background'],0).respond(env.observe(s),env.phase).decision
-        if len(state['pending'])==4:
-            frame=state['pending'];env.step({int(s):d for s,d in frame.items()})
-            state['turns'].append(frame);state['pending']={}
-        atomic_json(path,state)
+    state=json.loads(path.read_text());env=restore(state)
+    if not isinstance(reply,dict) or set(reply)!={'decision_id','decision'}:raise ValueError('expected decision_id and decision')
+    token=reply['decision_id']
+    if not isinstance(token,str):raise ValueError('decision_id must be text')
+    if state['focal'] is not None and state['focal']!=seat:raise ValueError('only focal seat accepts external input')
+    if token in state['accepted']:
+        prior=state['accepted'][token]
+        if prior!={'seat':seat,'decision':reply['decision']}:raise ValueError('cannot revise accepted input')
         return envelope(state,env,seat)
-    finally:lock.unlink()
+    current=envelope(state,env,seat)
+    if current['done'] or current['decision_id']!=token:raise ValueError('stale or wrong decision_id')
+    state['pending'][str(seat)]=reply['decision']
+    state['accepted'][token]={'seat':seat,'decision':reply['decision']}
+    if state['focal'] is not None:
+        for s in range(4):
+            if s!=seat:state['pending'][str(s)]=Baseline(state['background'],0).respond(env.observe(s),env.phase).decision
+    if len(state['pending'])==4:
+        frame=state['pending'];env.step({int(s):d for s,d in frame.items()})
+        state['turns'].append(frame);state['pending']={}
+    atomic_json(path,state)
+    return envelope(state,env,seat)
 
 
 def main(argv=None, default_mode='shared'):
     parser=argparse.ArgumentParser(description=__doc__)
     commands=parser.add_subparsers(dest='command',required=True)
+    commands.add_parser('allocation-certificate')
     audit=commands.add_parser('research')
     audit.add_argument('--out',type=Path,required=True)
     audit.add_argument('--validation-seeds',type=int,default=20)
@@ -84,6 +83,7 @@ def main(argv=None, default_mode='shared'):
     run.add_argument('--plan',type=Path,required=True);run.add_argument('--out',type=Path,required=True)
     run.add_argument('--eval',choices=['shared','individual','both'],default=default_mode)
     run.add_argument('--difficulty',choices=TIERS,default='hard')
+    run.add_argument('--allocation',action='store_true',help='enable allocation-v1 incentive diagnostic; requires joint workload')
     run.add_argument('--workload', choices=['solo','joint'], default='solo')
     run.add_argument('--seeds',type=int,default=100);run.add_argument('--seed-start',type=int,default=0)
     run.add_argument('--split',choices=['train','validation','test'],default='test')
@@ -100,16 +100,21 @@ def main(argv=None, default_mode='shared'):
     curve.add_argument('--max-calls',type=int,default=1000000);curve.add_argument('--enable-external',action='store_true');curve.add_argument('--resume',action='store_true')
     new=commands.add_parser('session-create');new.add_argument('state',type=Path)
     new.add_argument('--eval',choices=['shared','individual'],default=default_mode)
+    new.add_argument('--allocation',action='store_true')
     new.add_argument('--workload', choices=['solo','joint'], default='solo')
     new.add_argument('--difficulty',choices=TIERS,default='hard');new.add_argument('--seed',type=int,default=0)
     new.add_argument('--split',choices=['train','validation','test'],default='test')
     new.add_argument('--communication',choices=['full','public','none'],default='full')
     new.add_argument('--focal',type=int,choices=range(4))
-    new.add_argument('--background',default='planner',choices=['planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'])
+    from .allocation import POLICIES
+    new.add_argument('--background',default='planner',choices=[*POLICIES, 'planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'])
     for command in ('observe','submit','export'):
         p=commands.add_parser(command);p.add_argument('state',type=Path);p.add_argument('--seat',type=int,choices=range(4),required=True)
     try:
         args=parser.parse_args(argv)
+        if args.command=='allocation-certificate':
+            from .allocation import certificate
+            print(json.dumps(certificate()));return 0
         if args.command=='research':
             from .v2_research import research
             result=research(args.out,validation_seeds=args.validation_seeds,test_seeds=args.test_seeds,test_start=args.test_start)
@@ -135,7 +140,7 @@ def main(argv=None, default_mode='shared'):
             print(json.dumps({'out':str(args.out),'rows':[{k:r[k] for k in ('eval','crew','planned','completed','errors')} for r in result['rows']]}))
             return 2 if any(r['errors'] for r in result['rows']) else 0
         if args.command=='session-create':
-            result=create(args.state,mode=args.eval,seed=args.seed,split=args.split,difficulty=args.difficulty,communication=args.communication,focal=args.focal,background=args.background,workload=args.workload)
+            result=create(args.state,mode=args.eval,seed=args.seed,split=args.split,difficulty=args.difficulty,communication=args.communication,focal=args.focal,background=args.background,workload=args.workload,allocation=args.allocation)
         elif args.command=='submit':result=submit(args.state,args.seat,json.load(sys.stdin))
         else:
             state=json.loads(args.state.read_text());env=restore(state)

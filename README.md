@@ -4,6 +4,12 @@ Evaluate multi-agent cooperation under a common survival and crew-objective rewa
 
 Four agents share a damaged space station, limited batteries, and six rounds until rescue. Each sees private cargo values and sensor readings, negotiates through public and private messages, and commits actions simultaneously. Every agent receives the same reward for keeping the station alive and completing crew objectives.
 
+## Certified incentive diagnostic (0.4)
+
+[Allocation-v1](docs/allocation.md) adds an opt-in individual/team payoff conflict with equal opportunity across roles, an exhaustive payoff certificate, and cooperative, selfish, reciprocal and changing partners. It includes paired evaluation, crash-released session locks and bounded command output. These are research and reliability improvements; frontier model separation and RL learning remain unvalidated.
+
+[November 6 council and research](docs/release-council-2026-11-06.md) · [Changelog](CHANGELOG.md)
+
 ## Harder V2 environment
 
 [V2 mechanics and usage](docs/v2.md) add hidden faults, scenario-specific repair recipes, coupled life-support resources, delayed repairs, costly investigation, specialist roles, escrowed trades, and private contracts. Four difficulty tiers span 6–36 rounds. It supports independent model players, varied partner policies, held-out evaluation, and supplied training checkpoints.
@@ -23,7 +29,7 @@ The experimental [joint workload and research protocol](docs/cooperation-researc
 
 ## Run
 
-Python 3.11+ is sufficient. Local baselines require no dependencies or API credentials.
+Python 3.11+ on Linux or macOS is sufficient. The CLI uses POSIX locks and subprocess handling. Local baselines require no dependencies or API credentials.
 
 ```sh
 python3 -m shared_survival_eval run \
@@ -51,3 +57,7 @@ The default eval is `shared`. The alternative reward scheme remains available th
 External model adapters require explicit opt-in and can incur charges. Keep runtime logs outside Git. The [V1 subscription pilot](docs/pilot-results.md) completed 15 of 16 model games. The [V2 joint-work pilot](docs/joint-pilot-results.md) completed all 32 Astra games, but the shared-reward benefit remains unresolved and execution reliability missed its target. Both reports include outcomes and limitations. No RL training has been performed.
 
 [Protocol](docs/protocol.md) · [Model adapters, evaluation plans, and RL API](docs/usage.md) · [Verification](docs/verification.md)
+
+## Publication and licensing
+
+Source is available for inspection. No open-source reuse license has been selected. See [contribution guidance](CONTRIBUTING.md) and the [release scope](docs/release-council-2026-11-06.md).

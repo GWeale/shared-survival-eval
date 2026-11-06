@@ -11,6 +11,7 @@ import tempfile
 from dataclasses import asdict
 from pathlib import Path
 
+from .session_lock import locked
 from .agents import AgentFailure, CallBudget, make_agent, validate_config
 from .engine import MODES, PROTOCOL, SEATS, SPLITS, Scenario, StationEnv, rng_for
 
@@ -25,6 +26,9 @@ def atomic_json(path: Path, value: dict) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY)
+        try: os.fsync(directory)
+        finally: os.close(directory)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -144,6 +148,13 @@ def interval_by_seed(samples: dict[int, list[float]]) -> list[float] | None:
 
 
 def summarize(records: list[dict]) -> dict:
+    contexts = {json.dumps([r['protocol'], r.get('split'), r.get('communication'),
+                           r.get('scenario', {}).get('config')], sort_keys=True) for r in records}
+    if len(contexts) > 1:
+        raise ValueError('summary cannot mix protocol, split, communication or configuration')
+    identities = [(r['eval'], r['crew'], r['seed'], r['rotation'], r['replicate']) for r in records]
+    if len(set(identities)) != len(identities):
+        raise ValueError('duplicate episode identity')
     groups: dict[tuple, list] = {}
     for record in records:
         groups.setdefault((record["eval"], record["crew"]), []).append(record)
@@ -151,10 +162,13 @@ def summarize(records: list[dict]) -> dict:
     for (mode, crew), entries in sorted(groups.items()):
         completed = [r for r in entries if r["status"] == "complete"]
         row = {"eval": mode, "crew": crew, "planned": len(entries), "completed": len(completed),
-               "errors": len(entries) - len(completed), "metrics": {}, "per_agent": {}}
+               "errors": sum(r['status'] == 'error' for r in entries),
+               "unfinished": sum(r['status'] not in ('complete','error') for r in entries),
+               "completion_fraction": len(completed)/len(entries), "metrics": {}, "per_agent": {}}
         for name, extract in {
             "survival_rate": lambda r: float(r["result"]["survived"]),
             "delivered_value": lambda r: sum(r["result"]["cargo"]) if r["result"]["survived"] else 0,
+            "allocation_delivered_value": lambda r: r["result"].get("allocation_delivered_value", 0),
             "mean_reward": lambda r: statistics.mean(r["result"]["rewards"]),
             "realized_team_completion": lambda r: r["result"]["realized_team_completion"],
             "cargo_per_battery": lambda r: r["result"]["cargo_per_battery"],
@@ -178,6 +192,17 @@ def summarize(records: list[dict]) -> dict:
         if entries and entries[0]["protocol"] == "station-v2":
             row["mechanisms"] = {key: statistics.mean(r["result"][key] for r in completed) if completed else None
                                  for key in ("successful_repairs", "inspections", "trades", "gifts", "fabrications")}
+        survivors = [r for r in completed if r['result']['survived']]
+        survivor_samples = {}
+        for r in survivors: survivor_samples.setdefault(r['seed'], []).append(sum(r['result']['cargo']))
+        row['delivery_given_survival'] = {'surviving_episodes': len(survivors),
+            'mean': statistics.mean(statistics.mean(v) for v in survivor_samples.values()) if survivors else None,
+            'selection': 'conditional metric; assess alongside unconditional delivery and completion coverage'}
+        row['by_rotation'] = [{'rotation': rotation, 'completed': len(group),
+                              'mean_delivered_value': statistics.mean(sum(r['result']['cargo']) if r['result']['survived'] else 0 for r in group)}
+                             for rotation in sorted({r['rotation'] for r in completed})
+                             for group in [[r for r in completed if r['rotation'] == rotation]]]
+        row['message_characters'] = sum(len(e['text']) for r in completed for e in r.get('events', []) if e['kind'] == 'message')
         commitments = sum(r["result"]["commitments"] for r in completed)
         row["commitment_fulfillment"] = sum(r["result"]["fulfilled"] for r in completed) / commitments if commitments else None
         row["invalid_decisions"] = sum(r["result"]["invalid_decisions"] for r in completed)
@@ -194,6 +219,8 @@ def summarize(records: list[dict]) -> dict:
                         "input_tokens_reported": sum(c["input_tokens"] or 0 for c in calls),
                         "output_tokens_reported": sum(c["output_tokens"] or 0 for c in calls),
                         "calls_missing_usage": sum(c["input_tokens"] is None or c["output_tokens"] is None for c in calls),
+                        "input_tokens_total": sum(c["input_tokens"] for c in calls) if calls and attempted == len(calls) and all(c["input_tokens"] is not None for c in calls) else None,
+                        "output_tokens_total": sum(c["output_tokens"] for c in calls) if calls and attempted == len(calls) and all(c["output_tokens"] is not None for c in calls) else None,
                         "estimated_usd": sum(c["estimated_usd"] for c in calls) if attempted == len(calls) and all(c["estimated_usd"] is not None for c in calls) else None}
         rows.append(row)
     matched = {}
@@ -217,6 +244,24 @@ def summarize(records: list[dict]) -> dict:
         comparisons.append({"crew": crew, "metric": "individual_minus_shared_survival", "complete_pairs": available,
                             "unpaired_or_error": missing, "mean": statistics.mean([statistics.mean(v) for v in samples.values()]) if samples else None,
                             "ci95": interval_by_seed(samples)})
+    for crew in sorted({r['crew'] for r in records}):
+        for metric, extract in {
+            'shared_minus_individual_delivered_value': lambda r: sum(r['result']['cargo']) if r['result']['survived'] else 0,
+            'shared_minus_individual_realized_team_completion': lambda r: r['result']['realized_team_completion'],
+            'shared_minus_individual_allocation_delivery': lambda r: r['result'].get('allocation_delivered_value', 0),
+        }.items():
+            samples, available, missing = {}, 0, 0
+            for key, pair in matched.items():
+                if key[0] != crew: continue
+                if set(pair) == set(MODES) and all(r['status'] == 'complete' for r in pair.values()):
+                    if pair['shared']['scenario_hash'] != pair['individual']['scenario_hash'] or pair['shared']['assignment'] != pair['individual']['assignment']:
+                        raise ValueError('paired scenarios or assignments do not match')
+                    samples.setdefault(key[1], []).append(extract(pair['shared'])-extract(pair['individual']))
+                    available += 1
+                else: missing += 1
+            comparisons.append({'crew': crew, 'metric': metric, 'complete_pairs': available,
+                                'unpaired_or_error': missing, 'mean': statistics.mean(statistics.mean(v) for v in samples.values()) if samples else None,
+                                'ci95': interval_by_seed(samples)})
     return {"protocol": records[0]["protocol"] if records else PROTOCOL, "rows": rows, "paired_comparisons": comparisons,
             "uncertainty": "95% percentile bootstrap over scenario blocks, 1000 resamples; rotations and replicates stay together. Intervals require at least two seeds and describe scenario variation, not broad capability or training effectiveness. Errors are reported separately and excluded from outcome means."}
 
@@ -244,15 +289,16 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
                 "split": split, "rotations": rotations, "repeats": repeats, "evals": list(modes),
                 "communication": communication, "probes": probes, "max_calls": max_calls,
                 "agent_execution": "external_enabled" if external else "local_baselines"}
+    manifest['schedule'] = [{'eval': mode, 'crew': crew, 'seed': seed, 'split': split,
+                             'rotation': rotation, 'replicate': replicate,
+                             'assignment': [plan['crews'][crew][(s-rotation)%4] for s in SEATS]}
+                            for mode in modes for crew in plan['crews'] for seed in seeds
+                            for rotation in range(rotations) for replicate in range(repeats)]
     out.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock = out / ".run.lock"
+    guard = locked(lock)
+    guard.__enter__()
     try:
-        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    except FileExistsError:
-        raise ValueError("output directory is locked; check its owner before removing a stale .run.lock") from None
-    try:
-        with os.fdopen(descriptor, "w") as stream:
-            stream.write(str(os.getpid()))
         if (out / "manifest.json").exists():
             if not resume:
                 raise ValueError("output already has a manifest; use --resume or a new directory")
@@ -300,4 +346,4 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
         atomic_json(out / "summary.json", summary)
         return summary
     finally:
-        lock.unlink()
+        guard.__exit__(None, None, None)

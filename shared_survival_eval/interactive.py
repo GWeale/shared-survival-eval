@@ -14,9 +14,11 @@ from pathlib import Path
 
 from .agents import Baseline, request_for
 from .engine import PROTOCOL, SEATS, StationEnv
+from .session_lock import serialized
 from .runner import atomic_json, source_hash
 
 
+@serialized
 def create(path: Path, *, mode: str, seed: int, seat: int, model: str) -> dict:
     if path.exists():
         raise ValueError("session already exists")
@@ -60,6 +62,7 @@ def view(state: dict, env: StationEnv) -> dict:
             **request_for(env.observe(seat), env.phase)}
 
 
+@serialized
 def submit(path: Path, envelope: dict) -> dict:
     state = json.loads(path.read_text())
     env = restore(state)

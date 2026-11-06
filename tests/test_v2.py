@@ -159,8 +159,9 @@ class V2IntegrationTests(unittest.TestCase):
                 decision=Baseline('planner',0).respond(req['observation'],req['phase']).decision
                 out=submit(p,0,{'decision_id':req['decision_id'],'decision':decision})
             self.assertTrue(out['done']);self.assertGreater(out['reward'],0)
-            p.with_suffix('.json.lock').touch()
-            with self.assertRaisesRegex(ValueError,'being updated'):submit(p,0,{})
+            from shared_survival_eval.session_lock import locked
+            with locked(p.with_suffix('.json.lock')):
+                with self.assertRaisesRegex(ValueError,'locked'):submit(p,0,{})
 
     def test_batch_preserves_pairing_budget_and_resume(self):
         with tempfile.TemporaryDirectory() as d:

@@ -1,0 +1,60 @@
+{
+  "agents": {
+    "objective": {
+      "type": "baseline",
+      "name": "allocation_objective"
+    },
+    "common": {
+      "type": "baseline",
+      "name": "allocation_common"
+    },
+    "private": {
+      "type": "baseline",
+      "name": "allocation_private"
+    },
+    "reciprocal": {
+      "type": "baseline",
+      "name": "allocation_reciprocal"
+    },
+    "forgiving": {
+      "type": "baseline",
+      "name": "allocation_forgiving"
+    },
+    "switch": {
+      "type": "baseline",
+      "name": "allocation_switch"
+    }
+  },
+  "crews": {
+    "objective_with_common": [
+      "objective",
+      "common",
+      "common",
+      "common"
+    ],
+    "objective_with_private": [
+      "objective",
+      "private",
+      "private",
+      "private"
+    ],
+    "objective_with_reciprocal": [
+      "objective",
+      "reciprocal",
+      "reciprocal",
+      "reciprocal"
+    ],
+    "objective_with_forgiving": [
+      "objective",
+      "forgiving",
+      "forgiving",
+      "forgiving"
+    ],
+    "objective_with_switch": [
+      "objective",
+      "switch",
+      "switch",
+      "switch"
+    ]
+  }
+}

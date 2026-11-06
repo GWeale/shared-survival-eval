@@ -65,15 +65,15 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(timestamps, {p.name: p.stat().st_mtime_ns for p in paths})
             with self.assertRaisesRegex(ValueError, "manifest differs"):
                 run_batch(PLAN, out, [0, 1], rotations=1, max_calls=500, communication="none", resume=True)
-            self.assertFalse((out / ".run.lock").exists())
+            self.assertTrue((out / ".run.lock").exists())
 
     def test_concurrent_writer_and_nonempty_directory_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
-            (out / ".run.lock").write_text("999")
-            with self.assertRaisesRegex(ValueError, "locked"):
-                run_batch(PLAN, out, [0])
-            (out / ".run.lock").unlink()
+            from shared_survival_eval.session_lock import locked
+            with locked(out / ".run.lock"):
+                with self.assertRaisesRegex(ValueError, "locked"):
+                    run_batch(PLAN, out, [0])
             (out / "unrelated").write_text("keep")
             with self.assertRaisesRegex(ValueError, "empty"):
                 run_batch(PLAN, out, [0])

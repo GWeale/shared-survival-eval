@@ -50,8 +50,11 @@ class Config:
     sensor_accuracy: float = .8
     integrity: int = 3
     workload: str = 'solo'
+    allocation: bool = False
 
     def __post_init__(self):
+        if type(self.allocation) is not bool or (self.allocation and self.workload != 'joint'):
+            raise ValueError('allocation requires joint workload and a boolean flag')
         if self.workload not in ('solo', 'joint'):
             raise ValueError('workload must be solo or joint')
         for key, low, high in [('rounds', 2, 60), ('repair_delay', 1, 4), ('pressure', 0, 3), ('integrity', 1, 6)]:
@@ -120,6 +123,10 @@ class StationEnv:
         self.oxygen, self.power, self.heat, self.coolant = 60, 55, 8, 12
         self.inventory = [{p: (4 if s == 2 else 1) for p in PARTS} for s in SEATS]
         self.integrity=self.config.integrity
+        self.allocation_points = [0]*4
+        self.allocation_opportunities = [0]*4
+        self.invalid_events = 0
+        self.invalid_keys = set()
         self.work_submissions = {}
         self.completed_orders = self.failed_work_actions = 0
         self.credits, self.cargo = [10]*4, [0]*4
@@ -138,7 +145,9 @@ class StationEnv:
                             'visible_to': visible_to, **copy.deepcopy(data)})
 
     def _invalid(self, seat, reason):
-        self.invalid_count += 1
+        self.invalid_events += 1
+        self.invalid_keys.add((self.round, self.phase, seat))
+        self.invalid_count = len(self.invalid_keys)
         self._event('invalid', {'seat': seat, 'reason': reason}, [seat])
 
     def observe(self, seat):
@@ -175,6 +184,13 @@ class StationEnv:
             observation['private']['opportunity'] = None
             observation['private']['next_value_forecast'] = None
             observation['legal_actions'] = ['work' if a == 'contract' else a for a in actions]
+        if self.config.allocation:
+            from .allocation import RULES as allocation_rules
+            observation['rules']['allocation'] = copy.deepcopy(allocation_rules)
+            observation['rules']['reward'] = observation['reward'] = allocation_rules['reward']
+            observation['rules']['joint_work']['reward'] = allocation_rules['reward']
+            observation['allocation'] = {'version': 'allocation-v1', 'points': self.allocation_points.copy(),
+                                         'token_available': self.phase == 'act'}
         return observation
 
     def observations(self):
@@ -303,6 +319,19 @@ class StationEnv:
         if self.phase=='discuss':
             self._discuss(decisions)
             return self.observations(),dict.fromkeys(SEATS,0.),False,{}
+        if self.config.allocation:
+            from .allocation import payoffs
+            choices = []
+            for seat in SEATS:
+                choice = decisions[seat].get('allocation') if isinstance(decisions[seat], dict) else None
+                if choice not in ('common', 'private'):
+                    self._invalid(seat, 'allocation requires common or private; token burned')
+                    choice = 'burn'
+                choices.append(choice)
+                self.allocation_opportunities[seat] += 1
+            gains = payoffs(choices)
+            self.allocation_points = [a+b for a,b in zip(self.allocation_points, gains)]
+            self._event('allocation_settlement', {'choices': choices, 'payoffs': gains})
         incoming=[dict.fromkeys(PARTS,0) for _ in SEATS]; payments=[0]*4; accepted=set(); executed={}
         for seat in [(self.round-1+i)%4 for i in SEATS]:
             try: executed[seat]=self._act(seat,decisions[seat],incoming,payments,accepted)
@@ -367,7 +396,14 @@ class StationEnv:
         rewards=[(-1. if not survived else .5+.5*team if self.mode=='shared' else .5+.25*completion[s]+.25*self.credits[s]/40) for s in SEATS]
         if self.config.workload == 'joint':
             rewards = [-1. if not survived else team if self.mode == 'shared' else .75*completion[s]+.25*self.credits[s]/40 for s in SEATS]
-        return {'survived':survived,'rounds':self.round,'reason':'rescued' if survived else 'resource_failure',
+        if self.config.allocation:
+            rewards = [-1. if not survived else sum(self.allocation_points)/(32*self.config.rounds)
+                       if self.mode == 'shared' else self.allocation_points[s]/(10*self.config.rounds) for s in SEATS]
+        return {'allocation_version': 'allocation-v1' if self.config.allocation else None,
+            'allocation_points': self.allocation_points.copy(),
+            'allocation_delivered_value': sum(self.allocation_points) if survived else 0,
+            'allocation_opportunities': self.allocation_opportunities.copy(), 'invalid_events': self.invalid_events,
+            'survived':survived,'rounds':self.round,'reason':'rescued' if survived else 'resource_failure',
             'rewards':rewards,'cargo':self.cargo.copy(),'objective_completion':completion,'team_completion':team,
             'realized_team_completion':team if survived else 0.,'credits':self.credits.copy(),
             'commitments':self.commitment_count,'fulfilled':self.fulfilled,'invalid_decisions':self.invalid_count,

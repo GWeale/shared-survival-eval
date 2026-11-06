@@ -56,7 +56,8 @@ def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared
         summary=run_batch(cp['plan'],out/f"checkpoint-{cp['training_episodes']}",seeds,split='test',rotations=rotations,
                           modes=modes,config=config,protocol='station-v2',difficulty=difficulty,max_calls=max_calls//len(checkpoints),
                           enable_external=enable_external,resume=resume)
-        rows.append({'training_episodes':cp['training_episodes'],'rows':summary['rows'],'budget':summary['budget']})
+        rows.append({'training_episodes':cp['training_episodes'],'rows':summary['rows'],'budget':summary['budget'], 'paired_comparisons':summary['paired_comparisons'],
+                     'plan_sha256':__import__('hashlib').sha256(json.dumps(cp['plan'],sort_keys=True).encode()).hexdigest()})
     result={'protocol':'station-v2','rows':rows,'training':'Checkpoints supplied by caller; no training performed by evaluator.',
             'uncertainty':'Scenario-block bootstrap in each row; same held-out seeds and seat rotations at every checkpoint.'}
     atomic_json(out/'learning-curve.json',result)
