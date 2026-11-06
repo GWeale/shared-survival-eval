@@ -1,0 +1,62 @@
+{
+  "agents": {
+    "coordinator": {
+      "type": "baseline",
+      "name": "coordinator"
+    },
+    "local_worker": {
+      "type": "baseline",
+      "name": "local_worker"
+    },
+    "maintenance": {
+      "type": "baseline",
+      "name": "maintenance"
+    },
+    "greedy": {
+      "type": "baseline",
+      "name": "greedy"
+    },
+    "deceptive": {
+      "type": "baseline",
+      "name": "deceptive"
+    }
+  },
+  "crews": {
+    "coordinator": [
+      "coordinator",
+      "coordinator",
+      "coordinator",
+      "coordinator"
+    ],
+    "local_worker": [
+      "local_worker",
+      "local_worker",
+      "local_worker",
+      "local_worker"
+    ],
+    "maintenance": [
+      "maintenance",
+      "maintenance",
+      "maintenance",
+      "maintenance"
+    ],
+    "greedy": [
+      "greedy",
+      "greedy",
+      "greedy",
+      "greedy"
+    ],
+    "mixed": [
+      "coordinator",
+      "coordinator",
+      "local_worker",
+      "coordinator"
+    ],
+    "misinformation": [
+      "coordinator",
+      "coordinator",
+      "coordinator",
+      "deceptive"
+    ]
+  }
+}

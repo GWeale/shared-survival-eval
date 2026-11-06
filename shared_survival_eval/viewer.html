@@ -50,7 +50,7 @@ for(let s=0;s<4;s++){
  const own=(view==='all'||Number(view)===s)?frame.observations[String(s)]:null;
  if(own){
   add('div',el,`Cargo secured: ${own.private.cargo}`,'cargo');
-  if(v2){add('div',el,own.role,'role');add('div',el,`Credits: ${own.private.credits}`,'cargo');add('div',el,`Contract: ${own.private.opportunity.item} → ${own.private.opportunity.value}`,'cargo');add('div',el,'Sensor: '+own.private.sensor,'cargo muted')}
+  if(v2){add('div',el,own.role,'role');add('div',el,`Credits: ${own.private.credits}`,'cargo');if(own.private.work_orders){for(const [id,order] of Object.entries(own.private.work_orders))add('div',el,`${id}: ${order.item} → ${order.value}`,'cargo')}else{add('div',el,`Contract: ${own.private.opportunity.item} → ${own.private.opportunity.value}`,'cargo')}add('div',el,'Sensor: '+own.private.sensor,'cargo muted')}
   else{add('div',el,'Values: '+own.private.cargo_values.join(' · '),'cargo');add('div',el,'Sensor: '+(own.private.shock_sensor??'—'),'cargo muted')}
  }else add('div',el,'Private objectives hidden','cargo muted');
 }

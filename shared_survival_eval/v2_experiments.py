@@ -1,4 +1,5 @@
 """Bounded exact maintenance oracle and held-out checkpoint evaluation."""
+from dataclasses import asdict, replace
 import itertools
 import json
 from pathlib import Path
@@ -30,7 +31,7 @@ def exact_repair_oracle(faults, inventory, recipes, delay, deadline):
 
 
 def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared','individual'), rotations=4,
-                   max_calls=1000000, enable_external=False, resume=False):
+                   max_calls=1000000, enable_external=False, resume=False, workload="solo"):
     """Evaluate supplied training checkpoints; this function never trains a model."""
     if not isinstance(checkpoints,list) or not checkpoints:raise ValueError('checkpoint list required')
     counts=[]
@@ -41,10 +42,10 @@ def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared
         counts.append(n);validate_plan(cp['plan'])
     if counts!=sorted(set(counts)):raise ValueError('checkpoint training counts must be unique and increasing')
     if type(max_calls) is not int or max_calls<len(checkpoints):raise ValueError('call budget too small')
-    Config.tier(difficulty)
+    config=asdict(replace(Config.tier(difficulty),workload=workload))
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     manifest={'source_hash':source_hash(),'checkpoints':checkpoints,'seeds':seeds,'difficulty':difficulty,
-              'modes':list(modes),'rotations':rotations,'max_calls':max_calls,'enable_external':enable_external}
+              'config':config,'modes':list(modes),'rotations':rotations,'max_calls':max_calls,'enable_external':enable_external}
     saved=out/'curve-manifest.json'
     if saved.exists():
         if not resume or json.loads(saved.read_text())!=manifest:raise ValueError('curve manifest differs or resume not enabled')
@@ -53,7 +54,7 @@ def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared
     rows=[]
     for cp in checkpoints:
         summary=run_batch(cp['plan'],out/f"checkpoint-{cp['training_episodes']}",seeds,split='test',rotations=rotations,
-                          modes=modes,protocol='station-v2',difficulty=difficulty,max_calls=max_calls//len(checkpoints),
+                          modes=modes,config=config,protocol='station-v2',difficulty=difficulty,max_calls=max_calls//len(checkpoints),
                           enable_external=enable_external,resume=resume)
         rows.append({'training_episodes':cp['training_episodes'],'rows':summary['rows'],'budget':summary['budget']})
     result={'protocol':'station-v2','rows':rows,'training':'Checkpoints supplied by caller; no training performed by evaluator.',

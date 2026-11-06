@@ -1,0 +1,448 @@
+{
+  "status": "holdout_complete",
+  "manifest": {
+    "source_hash": "eaded243321ad7e3cc3feb1c157a3157f469d730395be08a791d2092f45e18fd",
+    "protocol": "station-v2",
+    "workload": "joint",
+    "candidates": {
+      "standard": {
+        "rounds": 12,
+        "repair_delay": 2,
+        "pressure": 0,
+        "sensor_accuracy": 0.8,
+        "integrity": 3,
+        "workload": "joint"
+      },
+      "hard": {
+        "rounds": 24,
+        "repair_delay": 3,
+        "pressure": 1,
+        "sensor_accuracy": 0.65,
+        "integrity": 2,
+        "workload": "joint"
+      },
+      "extreme": {
+        "rounds": 36,
+        "repair_delay": 3,
+        "pressure": 2,
+        "sensor_accuracy": 0.5,
+        "integrity": 1,
+        "workload": "joint"
+      }
+    },
+    "validation_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "test_seeds": [
+      40000,
+      40001,
+      40002,
+      40003,
+      40004,
+      40005,
+      40006,
+      40007,
+      40008,
+      40009,
+      40010,
+      40011,
+      40012,
+      40013,
+      40014,
+      40015,
+      40016,
+      40017,
+      40018,
+      40019,
+      40020,
+      40021,
+      40022,
+      40023,
+      40024,
+      40025,
+      40026,
+      40027,
+      40028,
+      40029,
+      40030,
+      40031,
+      40032,
+      40033,
+      40034,
+      40035,
+      40036,
+      40037,
+      40038,
+      40039,
+      40040,
+      40041,
+      40042,
+      40043,
+      40044,
+      40045,
+      40046,
+      40047,
+      40048,
+      40049,
+      40050,
+      40051,
+      40052,
+      40053,
+      40054,
+      40055,
+      40056,
+      40057,
+      40058,
+      40059,
+      40060,
+      40061,
+      40062,
+      40063,
+      40064,
+      40065,
+      40066,
+      40067,
+      40068,
+      40069,
+      40070,
+      40071,
+      40072,
+      40073,
+      40074,
+      40075,
+      40076,
+      40077,
+      40078,
+      40079,
+      40080,
+      40081,
+      40082,
+      40083,
+      40084,
+      40085,
+      40086,
+      40087,
+      40088,
+      40089,
+      40090,
+      40091,
+      40092,
+      40093,
+      40094,
+      40095,
+      40096,
+      40097,
+      40098,
+      40099
+    ],
+    "selection": "Longest horizon with >=95% reference survival and positive delivery, zero reference invalid actions, and positive lower paired delivery bootstrap bound versus local_worker on validation only.",
+    "holdout_conditions": [
+      "coordinator",
+      "local_worker",
+      "maintenance",
+      "no_messages",
+      "fixed_schedule",
+      "focal_local_0",
+      "focal_local_1",
+      "focal_local_2",
+      "focal_local_3",
+      "misinformation"
+    ],
+    "fixed_schedule_source": {
+      "split": "train",
+      "seed": 0
+    },
+    "note": "Scripted controls only; no LLM calls, no RL training, no automatic model ranking or recurring job."
+  },
+  "selected": {
+    "tier": "extreme",
+    "config": {
+      "rounds": 36,
+      "repair_delay": 3,
+      "pressure": 2,
+      "sensor_accuracy": 0.5,
+      "integrity": 1,
+      "workload": "joint"
+    },
+    "reference": {
+      "scenarios": 20,
+      "survived": 1,
+      "delivered_value": 48.1,
+      "shared_reward": 0.05464055887752764,
+      "invalid": 0,
+      "completed_orders": 4.5,
+      "failed_work_actions": 1.05,
+      "positive_delivery_rate": 1,
+      "delivery_ci95": [
+        43.25,
+        53.6
+      ]
+    },
+    "control": {
+      "scenarios": 20,
+      "survived": 1,
+      "delivered_value": 14,
+      "shared_reward": 0.015930126931835733,
+      "invalid": 0,
+      "completed_orders": 1.05,
+      "failed_work_actions": 23,
+      "positive_delivery_rate": 0.8,
+      "delivery_ci95": [
+        9.7,
+        18.6
+      ]
+    },
+    "paired_gain": {
+      "mean": 34.1,
+      "ci95": [
+        29.2,
+        38.9
+      ]
+    }
+  },
+  "holdout": {
+    "coordinator": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 46.12,
+      "shared_reward": 0.052507256952579774,
+      "invalid": 0,
+      "completed_orders": 4.43,
+      "failed_work_actions": 0.99,
+      "positive_delivery_rate": 1,
+      "delivery_ci95": [
+        44.08,
+        48.3
+      ]
+    },
+    "local_worker": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 9.04,
+      "shared_reward": 0.010326512612017644,
+      "invalid": 0,
+      "completed_orders": 0.66,
+      "failed_work_actions": 23.87,
+      "positive_delivery_rate": 0.5,
+      "delivery_ci95": [
+        6.84,
+        11.07
+      ]
+    },
+    "maintenance": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 0,
+      "shared_reward": 0.0,
+      "invalid": 0,
+      "completed_orders": 0,
+      "failed_work_actions": 0,
+      "positive_delivery_rate": 0,
+      "delivery_ci95": [
+        0,
+        0
+      ]
+    },
+    "no_messages": {
+      "scenarios": 100,
+      "survived": 0,
+      "delivered_value": 0,
+      "shared_reward": -1.0,
+      "invalid": 0,
+      "completed_orders": 0,
+      "failed_work_actions": 0,
+      "positive_delivery_rate": 0,
+      "delivery_ci95": [
+        0,
+        0
+      ]
+    },
+    "fixed_schedule": {
+      "scenarios": 100,
+      "survived": 0,
+      "delivered_value": 0,
+      "shared_reward": -1.0,
+      "invalid": 1.45,
+      "completed_orders": 2.03,
+      "failed_work_actions": 1.87,
+      "positive_delivery_rate": 0,
+      "delivery_ci95": [
+        0,
+        0
+      ]
+    },
+    "focal_local_0": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 46.12,
+      "shared_reward": 0.052507256952579774,
+      "invalid": 0,
+      "completed_orders": 4.43,
+      "failed_work_actions": 0.99,
+      "positive_delivery_rate": 1,
+      "delivery_ci95": [
+        44.08,
+        48.3
+      ]
+    },
+    "focal_local_1": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 30.77,
+      "shared_reward": 0.03505350249571825,
+      "invalid": 0,
+      "completed_orders": 2.83,
+      "failed_work_actions": 3.75,
+      "positive_delivery_rate": 1,
+      "delivery_ci95": [
+        28.53,
+        32.98
+      ]
+    },
+    "focal_local_2": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 23.09,
+      "shared_reward": 0.026300211368291467,
+      "invalid": 0,
+      "completed_orders": 1.87,
+      "failed_work_actions": 21.15,
+      "positive_delivery_rate": 0.95,
+      "delivery_ci95": [
+        20.66,
+        25.49
+      ]
+    },
+    "focal_local_3": {
+      "scenarios": 100,
+      "survived": 1,
+      "delivered_value": 33.14,
+      "shared_reward": 0.03775284620230864,
+      "invalid": 0,
+      "completed_orders": 3.11,
+      "failed_work_actions": 3.05,
+      "positive_delivery_rate": 1,
+      "delivery_ci95": [
+        30.89,
+        35.35
+      ]
+    },
+    "misinformation": {
+      "scenarios": 100,
+      "survived": 0,
+      "delivered_value": 0,
+      "shared_reward": -1.0,
+      "invalid": 0,
+      "completed_orders": 3.1,
+      "failed_work_actions": 0.99,
+      "positive_delivery_rate": 0,
+      "delivery_ci95": [
+        0,
+        0
+      ]
+    }
+  },
+  "paired_delivery_gain": {
+    "local_worker": {
+      "mean": 37.08,
+      "ci95": [
+        34.7,
+        39.56
+      ]
+    },
+    "maintenance": {
+      "mean": 46.12,
+      "ci95": [
+        44.08,
+        48.3
+      ]
+    },
+    "no_messages": {
+      "mean": 46.12,
+      "ci95": [
+        44.08,
+        48.3
+      ]
+    },
+    "fixed_schedule": {
+      "mean": 46.12,
+      "ci95": [
+        44.08,
+        48.3
+      ]
+    },
+    "focal_local_0": {
+      "mean": 0,
+      "ci95": [
+        0,
+        0
+      ]
+    },
+    "focal_local_1": {
+      "mean": 15.35,
+      "ci95": [
+        13.34,
+        17.47
+      ]
+    },
+    "focal_local_2": {
+      "mean": 23.03,
+      "ci95": [
+        20.62,
+        25.48
+      ]
+    },
+    "focal_local_3": {
+      "mean": 12.98,
+      "ci95": [
+        11.1,
+        14.82
+      ]
+    },
+    "misinformation": {
+      "mean": 46.12,
+      "ci95": [
+        44.08,
+        48.3
+      ]
+    }
+  },
+  "limitations": [
+    "Policy ablations do not establish causal necessity for every possible strategy.",
+    "The matching bound is optimistic, not a full-game optimum.",
+    "No LLM model separation or incentive adaptation has been measured.",
+    "Published holdout seeds become development data for subsequent revisions. Do not retune this run on its holdout."
+  ],
+  "holdout_gates": {
+    "reference_viable": true,
+    "reference_legal": true,
+    "maintenance_earns_no_delivery_reward": true,
+    "coordination_delivery_gain": true,
+    "blind_schedule_delivery_gain": true
+  },
+  "source_package": "shared_survival_eval",
+  "executed_episodes": {
+    "validation": 120,
+    "holdout": 1000,
+    "training_schedule_reference": 1
+  }
+}

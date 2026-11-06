@@ -154,6 +154,7 @@ def summarize(records: list[dict]) -> dict:
                "errors": len(entries) - len(completed), "metrics": {}, "per_agent": {}}
         for name, extract in {
             "survival_rate": lambda r: float(r["result"]["survived"]),
+            "delivered_value": lambda r: sum(r["result"]["cargo"]) if r["result"]["survived"] else 0,
             "mean_reward": lambda r: statistics.mean(r["result"]["rewards"]),
             "realized_team_completion": lambda r: r["result"]["realized_team_completion"],
             "cargo_per_battery": lambda r: r["result"]["cargo_per_battery"],

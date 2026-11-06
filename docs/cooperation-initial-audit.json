@@ -1,0 +1,58 @@
+[
+  {
+    "condition": "planner",
+    "survived": 1,
+    "welfare": 72.6,
+    "reward": 0.5756716315196205,
+    "completion": 0.15134326303924112,
+    "trades": 0
+  },
+  {
+    "condition": "silent",
+    "survived": 0.2,
+    "welfare": 18.55,
+    "reward": -0.6810547475475702,
+    "completion": 0.03789050490485961,
+    "trades": 0
+  },
+  {
+    "condition": "no_contracts",
+    "survived": 1,
+    "welfare": 0,
+    "reward": 0.5,
+    "completion": 0.0,
+    "trades": 0
+  },
+  {
+    "condition": "focal_greedy_0",
+    "survived": 0,
+    "welfare": 0,
+    "reward": -1.0,
+    "completion": 0.0,
+    "trades": 0
+  },
+  {
+    "condition": "focal_greedy_1",
+    "survived": 0,
+    "welfare": 0,
+    "reward": -1.0,
+    "completion": 0.0,
+    "trades": 0
+  },
+  {
+    "condition": "focal_greedy_2",
+    "survived": 0.2,
+    "welfare": 15.6,
+    "reward": -0.6840850172314521,
+    "completion": 0.03182996553709584,
+    "trades": 0
+  },
+  {
+    "condition": "focal_greedy_3",
+    "survived": 1,
+    "welfare": 64.55,
+    "reward": 0.5674324449939296,
+    "completion": 0.1348648899878593,
+    "trades": 0
+  }
+]

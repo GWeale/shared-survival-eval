@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from .agents import Baseline, request_for
@@ -27,11 +27,13 @@ def envelope(state, env, seat):
     return {'done':False,'waiting':str(seat) in state['pending'],'decision_id':token,**request_for(env.observe(seat),env.phase)}
 
 
-def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', communication='full', focal=None, background='planner'):
+def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', communication='full', focal=None, background='planner', workload='solo'):
     if path.exists():raise ValueError('session already exists')
     if focal is not None and (type(focal) is not int or focal not in range(4)):raise ValueError('invalid focal seat')
-    if background not in ('planner','greedy','reactive','reciprocal','opportunist','deceptive'):raise ValueError('invalid background')
-    config=Config.tier(difficulty)
+    if background not in ('planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'):raise ValueError('invalid background')
+    if workload == 'joint' and background in ('reactive','reciprocal'):
+        raise ValueError('joint sessions require a joint-compatible background policy')
+    config=replace(Config.tier(difficulty), workload=workload)
     env=StationEnv(mode,communication,config);env.reset(seed,split)
     state={'protocol':'station-v2','source_hash':source_hash(),'mode':mode,'seed':seed,'split':split,
            'communication':communication,'config':asdict(config),'focal':focal,'background':background,
@@ -73,10 +75,16 @@ def submit(path, seat, reply):
 def main(argv=None, default_mode='shared'):
     parser=argparse.ArgumentParser(description=__doc__)
     commands=parser.add_subparsers(dest='command',required=True)
+    audit=commands.add_parser('research')
+    audit.add_argument('--out',type=Path,required=True)
+    audit.add_argument('--validation-seeds',type=int,default=20)
+    audit.add_argument('--test-seeds',type=int,default=100)
+    audit.add_argument('--test-start',type=int,default=40000)
     run=commands.add_parser('run')
     run.add_argument('--plan',type=Path,required=True);run.add_argument('--out',type=Path,required=True)
     run.add_argument('--eval',choices=['shared','individual','both'],default=default_mode)
     run.add_argument('--difficulty',choices=TIERS,default='hard')
+    run.add_argument('--workload', choices=['solo','joint'], default='solo')
     run.add_argument('--seeds',type=int,default=100);run.add_argument('--seed-start',type=int,default=0)
     run.add_argument('--split',choices=['train','validation','test'],default='test')
     run.add_argument('--rotations',type=int,choices=range(1,5),default=4);run.add_argument('--repeats',type=int,default=1)
@@ -85,26 +93,33 @@ def main(argv=None, default_mode='shared'):
     run.add_argument('--enable-external',action='store_true');run.add_argument('--resume',action='store_true')
     for flag,kind in [('rounds',int),('repair-delay',int),('pressure',int),('sensor-accuracy',float),('integrity',int)]:run.add_argument('--'+flag,type=kind)
     curve=commands.add_parser('curve')
+    curve.add_argument('--workload',choices=['solo','joint'],default='solo')
     curve.add_argument('--checkpoints',type=Path,required=True);curve.add_argument('--out',type=Path,required=True)
     curve.add_argument('--seeds',type=int,default=100);curve.add_argument('--seed-start',type=int,default=10000)
     curve.add_argument('--difficulty',choices=TIERS,default='hard');curve.add_argument('--rotations',type=int,choices=range(1,5),default=4)
     curve.add_argument('--max-calls',type=int,default=1000000);curve.add_argument('--enable-external',action='store_true');curve.add_argument('--resume',action='store_true')
     new=commands.add_parser('session-create');new.add_argument('state',type=Path)
     new.add_argument('--eval',choices=['shared','individual'],default=default_mode)
+    new.add_argument('--workload', choices=['solo','joint'], default='solo')
     new.add_argument('--difficulty',choices=TIERS,default='hard');new.add_argument('--seed',type=int,default=0)
     new.add_argument('--split',choices=['train','validation','test'],default='test')
     new.add_argument('--communication',choices=['full','public','none'],default='full')
     new.add_argument('--focal',type=int,choices=range(4))
-    new.add_argument('--background',default='planner',choices=['planner','greedy','reactive','reciprocal','opportunist','deceptive'])
+    new.add_argument('--background',default='planner',choices=['planner','greedy','reactive','reciprocal','opportunist','deceptive','coordinator','local_worker','maintenance'])
     for command in ('observe','submit','export'):
         p=commands.add_parser(command);p.add_argument('state',type=Path);p.add_argument('--seat',type=int,choices=range(4),required=True)
     try:
         args=parser.parse_args(argv)
+        if args.command=='research':
+            from .v2_research import research
+            result=research(args.out,validation_seeds=args.validation_seeds,test_seeds=args.test_seeds,test_start=args.test_start)
+            print(json.dumps({'status':result['status'],'out':str(args.out),'gates':result.get('holdout_gates')}))
+            return 0 if result['status']=='holdout_complete' and all(result['holdout_gates'].values()) else 2
         if args.command=='curve':
             from .v2_experiments import learning_curve
             if args.seeds<1 or args.seed_start<0:raise ValueError('invalid seed range')
             result=learning_curve(json.loads(args.checkpoints.read_text()),args.out,seeds=list(range(args.seed_start,args.seed_start+args.seeds)),
-                difficulty=args.difficulty,rotations=args.rotations,max_calls=args.max_calls,enable_external=args.enable_external,resume=args.resume)
+                difficulty=args.difficulty,rotations=args.rotations,max_calls=args.max_calls,enable_external=args.enable_external,resume=args.resume,workload=args.workload)
             print(json.dumps({'checkpoints':len(result['rows']),'out':str(args.out)}))
             return 2 if any(row['errors'] for cp in result['rows'] for row in cp['rows']) else 0
         if args.command=='run':
@@ -120,7 +135,7 @@ def main(argv=None, default_mode='shared'):
             print(json.dumps({'out':str(args.out),'rows':[{k:r[k] for k in ('eval','crew','planned','completed','errors')} for r in result['rows']]}))
             return 2 if any(r['errors'] for r in result['rows']) else 0
         if args.command=='session-create':
-            result=create(args.state,mode=args.eval,seed=args.seed,split=args.split,difficulty=args.difficulty,communication=args.communication,focal=args.focal,background=args.background)
+            result=create(args.state,mode=args.eval,seed=args.seed,split=args.split,difficulty=args.difficulty,communication=args.communication,focal=args.focal,background=args.background,workload=args.workload)
         elif args.command=='submit':result=submit(args.state,args.seat,json.load(sys.stdin))
         else:
             state=json.loads(args.state.read_text());env=restore(state)

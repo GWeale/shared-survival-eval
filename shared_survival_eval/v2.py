@@ -49,8 +49,11 @@ class Config:
     pressure: int = 0
     sensor_accuracy: float = .8
     integrity: int = 3
+    workload: str = 'solo'
 
     def __post_init__(self):
+        if self.workload not in ('solo', 'joint'):
+            raise ValueError('workload must be solo or joint')
         for key, low, high in [('rounds', 2, 60), ('repair_delay', 1, 4), ('pressure', 0, 3), ('integrity', 1, 6)]:
             value = getattr(self, key)
             if type(value) is not int or not low <= value <= high:
@@ -117,6 +120,8 @@ class StationEnv:
         self.oxygen, self.power, self.heat, self.coolant = 60, 55, 8, 12
         self.inventory = [{p: (4 if s == 2 else 1) for p in PARTS} for s in SEATS]
         self.integrity=self.config.integrity
+        self.work_submissions = {}
+        self.completed_orders = self.failed_work_actions = 0
         self.credits, self.cargo = [10]*4, [0]*4
         self.active_faults = {self.scenario.faults[0]}
         self.diagnoses = [None]*4
@@ -144,7 +149,7 @@ class StationEnv:
         actions += {0:['repair'],1:['operate'],2:['fabricate'],3:[]}[seat]
         if seat in self.jobs:
             actions = ['wait']
-        return copy.deepcopy({'protocol': PROTOCOL, 'eval': self.mode, 'communication': self.communication,
+        observation = copy.deepcopy({'protocol': PROTOCOL, 'eval': self.mode, 'communication': self.communication,
             'seat': seat, 'role': ROLES[seat], 'round': self.round, 'phase': self.phase,
             'config': asdict(self.config), 'rules': RULES,
             'reward': RULES['reward'], 'legal_actions': actions,
@@ -155,6 +160,18 @@ class StationEnv:
                 'next_value_forecast': self.scenario.forecasts[seat][r] if self.round < self.config.rounds else None,
                 'sensor': self.scenario.clues[seat][r//6], 'diagnosis': self.diagnoses[seat]},
             'history': [e for e in self.events if e['visible_to'] is None or seat in e['visible_to']]})
+        if self.config.workload == 'joint':
+            from .work_orders import orders_for, WORK_RULES
+            orders = orders_for(self.scenario.seed, self.scenario.split, r + 1)
+            observation['rules']['joint_work'] = WORK_RULES
+            observation['rules']['reward'] = observation['reward'] = WORK_RULES['reward']
+            observation['orders'] = [{'id':o.id, 'seats':list(o.seats)} for o in orders]
+            observation['private']['work_orders'] = {o.id: {'item':o.items[o.seats.index(seat)], 'value':o.values[o.seats.index(seat)]}
+                                                    for o in orders if seat in o.seats}
+            observation['private']['opportunity'] = None
+            observation['private']['next_value_forecast'] = None
+            observation['legal_actions'] = ['work' if a == 'contract' else a for a in actions]
+        return observation
 
     def observations(self):
         return {s:self.observe(s) for s in SEATS}
@@ -187,7 +204,7 @@ class StationEnv:
                 else: self._invalid(seat, 'invalid private message')
             commit = d.get('commit')
             if commit is not None:
-                if isinstance(commit,str) and commit in SCHEMAS['act']['action'].split('/'):
+                if isinstance(commit,str) and commit in (*SCHEMAS['act']['action'].split('/'), 'work'):
                     self.commitments[seat] = commit; self.commitment_count += 1
                     self._event('commitment', {'seat':seat, 'action':commit})
                 else: self._invalid(seat,'invalid commitment')
@@ -257,7 +274,18 @@ class StationEnv:
             self.credits[seat]-=offer['price']; payments[seller]+=offer['price']
             incoming[seat][offer['item']]+=offer['qty']; accepted.add(seller); self.trades+=1
             self._event('transfer',{'seat':seller, **offer})
+        elif action == 'work':
+            if self.config.workload != 'joint': raise ValueError('work requires joint workload')
+            from .work_orders import orders_for
+            order = next((o for o in orders_for(self.scenario.seed, self.scenario.split, self.round) if o.id == d.get('order')), None)
+            if order is None or seat not in order.seats: raise ValueError('order requires this seat')
+            item = order.items[order.seats.index(seat)]
+            if inv[item] < 1 or self.power < 1: raise ValueError('work needs component and power')
+            inv[item] -= 1; self.power -= 1
+            self.work_submissions[seat] = order.id
+            self._event('work_attempt', {'seat':seat, 'order':order.id})
         elif action == 'contract':
+            if self.config.workload == 'joint': raise ValueError('joint workload requires work, not solo contracts')
             item=self.scenario.items[seat][self.round-1]
             if inv[item]<1 or self.power<1: raise ValueError('contract needs component and power')
             inv[item]-=1; self.power-=1; self.cargo[seat]+=self.scenario.values[seat][self.round-1]; self.contracts+=1
@@ -277,6 +305,16 @@ class StationEnv:
             except ValueError as exc:
                 self._invalid(seat,str(exc)); executed[seat]='wait'
             if self.commitments.get(seat)==executed[seat]: self.fulfilled+=1
+        if self.config.workload == 'joint':
+            from .work_orders import orders_for
+            completed_seats = set()
+            for order in orders_for(self.scenario.seed, self.scenario.split, self.round):
+                if all(self.work_submissions.get(s) == order.id for s in order.seats):
+                    for seat, value in zip(order.seats, order.values): self.cargo[seat] += value
+                    completed_seats.update(order.seats); self.completed_orders += 1
+                    self._event('work_complete', {'order':order.id, 'seats':list(order.seats), 'value':sum(order.values)})
+            self.failed_work_actions += len(set(self.work_submissions) - completed_seats)
+            self.work_submissions = {}
         for seller,offer in self.offers.items():
             if seller not in accepted: incoming[seller][offer['item']]+=offer['qty']
         self.offers={}
@@ -314,13 +352,23 @@ class StationEnv:
         if self.phase!='terminal': raise ValueError('result only at termination')
         survived=self.oxygen>0 and self.power>0 and self.heat<60 and self.integrity>0
         potentials=[sum(row) for row in self.scenario.values]
+        team_potential = sum(potentials)
+        if self.config.workload == 'joint':
+            from .work_orders import orders_for, best_matching
+            rounds = [orders_for(self.scenario.seed, self.scenario.split, r) for r in range(1, self.config.rounds+1)]
+            potentials = [sum(max(o.values[o.seats.index(s)] for o in orders if s in o.seats) for orders in rounds) for s in SEATS]
+            team_potential = sum(best_matching(orders)[0] for orders in rounds)
         completion=[self.cargo[s]/potentials[s] for s in SEATS]
-        team=sum(self.cargo)/sum(potentials)
+        team=sum(self.cargo)/team_potential
         rewards=[(-1. if not survived else .5+.5*team if self.mode=='shared' else .5+.25*completion[s]+.25*self.credits[s]/40) for s in SEATS]
+        if self.config.workload == 'joint':
+            rewards = [-1. if not survived else team if self.mode == 'shared' else .75*completion[s]+.25*self.credits[s]/40 for s in SEATS]
         return {'survived':survived,'rounds':self.round,'reason':'rescued' if survived else 'resource_failure',
             'rewards':rewards,'cargo':self.cargo.copy(),'objective_completion':completion,'team_completion':team,
             'realized_team_completion':team if survived else 0.,'credits':self.credits.copy(),
             'commitments':self.commitment_count,'fulfilled':self.fulfilled,'invalid_decisions':self.invalid_count,
             'repairs':self.repairs,'successful_repairs':self.successful_repairs,'inspections':self.inspections,
             'trades':self.trades,'gifts':self.gifts,'fabrications':self.fabrications,
-            'contracts':self.contracts}
+            'contracts':self.contracts, 'delivered_value':sum(self.cargo) if survived else 0,
+            'completed_orders':self.completed_orders, 'failed_work_actions':self.failed_work_actions,
+            'opportunity_upper_bound':team_potential}
