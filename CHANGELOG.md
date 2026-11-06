@@ -3,6 +3,7 @@
 ## 0.5.0 — November 6, 2026
 
 - Add a pinned Harbor focal-task exporter, isolated station RPC and separate replay verifier.
+- Verify both reward modes and rejection of forged-only evidence through actual Harbor; bound each game workload to 1 CPU / 1 GiB.
 - Replace seed-derived session IDs with secret-backed tokens; enforce focal observation boundaries.
 - Validate custom scenarios, numeric input, checkpoint configuration, usage and replay consistency.
 - Freeze command file identities and declared artifact hashes; reject rewound budgets before new calls.

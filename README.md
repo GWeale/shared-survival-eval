@@ -6,7 +6,7 @@ Four agents share a damaged space station, limited batteries, and six rounds unt
 
 ## Harbor integration and harness audit (0.5)
 
-The [Harbor focal-seat exporter](docs/harbor.md) targets pinned schema 1.4 with a separate game service and replay verifier. [Adversarial review and disposition](docs/harness-audit-2026-11-06.md) records privacy, resume, budget and transport fixes, plus the outstanding container acceptance gate. One model controls one seat against three scripted partners.
+The [Harbor focal-seat exporter](docs/harbor.md) targets pinned schema 1.4 with a separate game service and replay verifier. [Adversarial review and disposition](docs/harness-audit-2026-11-06.md) records privacy, resume, budget and transport fixes, and completed container acceptance against Harbor 0.25.0. One model controls one seat against three scripted partners.
 
 ## Certified incentive diagnostic (0.4)
 
