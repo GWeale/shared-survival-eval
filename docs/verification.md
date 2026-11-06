@@ -2,7 +2,11 @@
 
 Verified on George’s MacBook Pro with Python 3.13.18. Runtime dependencies: Python standard library. These checks concern the implementation and scripted controls, not learned model capability.
 
-## Joint-workload verification
+## Council follow-up verification
+
+Both packages pass **60 tests** after disclosing scripted partners’ message convention and correcting joint commerce instructions. The [council report](council-review.md) records five independent reviews, reproduced controls, and the next experiment. No model gameplay or training was run.
+
+## Joint-workload verification (historical)
 
 The experimental joint workload passes **59 tests per package**. [Research evidence](cooperation-research.md) documents the frozen validation/holdout pass, direct public-CLI checks, per-seat privacy checks, and isolated replay rendering. All five predeclared research gates passed. These are scripted controls; no new GPT or RL-training results are claimed.
 

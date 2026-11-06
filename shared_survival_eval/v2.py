@@ -164,6 +164,10 @@ class StationEnv:
             from .work_orders import orders_for, WORK_RULES
             orders = orders_for(self.scenario.seed, self.scenario.split, r + 1)
             observation['rules']['joint_work'] = copy.deepcopy(WORK_RULES)
+            observation['rules']['commerce'] = (
+                'Solo contracts are disabled; joint_work defines production. Give transfers parts without payment. '
+                'Offer escrows parts during discussion; the named buyer spends an action accepting and pays the price. '
+                'Unaccepted offers refund after actions. No debts or negative balances.')
             observation['rules']['reward'] = observation['reward'] = WORK_RULES['reward']
             observation['orders'] = [{'id':o.id, 'seats':list(o.seats)} for o in orders]
             observation['private']['work_orders'] = {o.id: {'item':o.items[o.seats.index(seat)], 'value':o.values[o.seats.index(seat)]}

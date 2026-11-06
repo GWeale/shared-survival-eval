@@ -117,6 +117,17 @@ class JointWorkTests(unittest.TestCase):
                          [{'seed':1,'delivered_value':1},{'seed':2,'delivered_value':3}])
         self.assertEqual(gain,{'mean':3,'ci95':[3,3]})
 
+    def test_joint_request_discloses_scripted_convention_without_private_data(self):
+        e=self.env(); obs=e.observe(0)
+        req=request_for(obs,'discuss')
+        convention=req['scripted_partner_protocol']
+        self.assertEqual(set(convention['fields']),{'inventory','diagnosis','repair_manual','work_orders','available'})
+        self.assertIn('ignore',convention['scope'])
+        self.assertNotIn('r1-',json.dumps(convention))
+        self.assertNotIn('Contract consumes',obs['rules']['commerce'])
+        solo=StationEnv();solo.reset()
+        self.assertNotIn('scripted_partner_protocol',request_for(solo.observe(0),'discuss'))
+
     def test_solo_baseline_results_and_action_space_are_preserved(self):
         e=StationEnv();e.reset()
         self.assertNotIn('orders',e.observe(0))

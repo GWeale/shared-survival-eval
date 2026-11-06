@@ -19,6 +19,8 @@ The existing commands below retain V1. The earlier GPT pilot is not a V2 model r
 
 The experimental [joint workload and research protocol](docs/cooperation-research.md) require paired work orders to earn shared delivery reward. Maintenance alone earns zero. Run `v2 research` to select a viable configuration on validation scenarios and audit a frozen holdout against coordination, selfishness, fixed-schedule, and partner controls. No model inference or RL training is implicit.
 
+[Five-agent council findings and next experiment](docs/council-review.md).
+
 ## Run
 
 Python 3.11+ is sufficient. Local baselines require no dependencies or API credentials.
