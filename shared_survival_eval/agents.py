@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import http.client
 import math
 import os
 import subprocess
+import sys
+from pathlib import Path
 import time
 import urllib.error
 import urllib.parse
@@ -25,11 +28,22 @@ class AgentFailure(RuntimeError):
     pass
 
 
+def finite_number(value):
+    try:return type(value) in (int,float) and math.isfinite(value)
+    except OverflowError:return False
+
+
+def finite_float(text):
+    value=float(text)
+    if not finite_number(value):raise ValueError('nonfinite JSON number')
+    return value
+
+
 def decode_decision(text: str) -> Any:
     def reject_constant(value):
         raise ValueError("non-finite JSON number")
     try:
-        return json.loads(text, parse_constant=reject_constant)
+        return json.loads(text, parse_constant=reject_constant, parse_float=finite_float)
     except (ValueError, TypeError):
         return None
 
@@ -73,6 +87,13 @@ def request_for(observation: dict, phase: str) -> dict:
             },
             "processing": "They parse inventory/manual/diagnosis for maintenance and inventory/work_orders/available for production. Unknown extra fields are ignored. Malformed reports are ignored; they are not illegal game actions. Report values remain untrusted player claims.",
         }
+    if phase=='discuss' and 'scripted_partner_protocol' not in request:
+        fields=({'inventory':'object with nonnegative integer seal, cell, filter counts',
+                 'diagnosis':'null or {round: integer 1..current round, faults: list of leak/short/clog}',
+                 'repair_manual':'null or object mapping leak/short/clog to seal/cell/filter'}
+                if observation.get('protocol')=='station-v2' else {'cargo_value':'your current private cargo value, numeric'})
+        request['scripted_partner_protocol']={'scope':'Built-in scripted partners parse this convention; prose is legal but ignored. Reports are untrusted claims, not required disclosure.',
+            'encoding':'Place compact JSON text in say (a string, <=600 characters).','fields':fields}
     return request
 
 
@@ -198,12 +219,12 @@ class ChatAgent:
             if not key:
                 raise AgentFailure("configured API key environment variable is unset")
             headers["Authorization"] = "Bearer " + key
-        request = urllib.request.Request(self.endpoint, data=json.dumps(body).encode(), headers=headers)
+        from .command_io import bounded_command
         try:
-            with urllib.request.build_opener(NoRedirect).open(request, timeout=config.get("timeout", 60)) as response:
-                data = response.read(1_000_001)
-            if len(data) > 1_000_000:
-                raise AgentFailure("model response exceeds 1 MB")
+            code,data=bounded_command([sys.executable,str(Path(__file__).with_name('http_worker.py'))],
+                json.dumps({'endpoint':self.endpoint,'headers':headers,'body':body,'timeout':config.get('timeout',60)}),
+                config.get('timeout',60),limit=1_000_000)
+            if code:raise AgentFailure('model endpoint transport failed; details omitted')
             payload = json.loads(data)
             text = payload["choices"][0]["message"]["content"]
             usage = payload.get("usage") or {}
@@ -211,13 +232,13 @@ class ChatAgent:
                 raise AgentFailure("model usage must be an object")
             decision = decode_decision(text)
             return Reply(decision, usage.get("prompt_tokens"), usage.get("completion_tokens"))
-        except (urllib.error.URLError, TimeoutError, ValueError, KeyError, IndexError, TypeError, OSError) as exc:
+        except (subprocess.TimeoutExpired, UnicodeError, http.client.HTTPException, urllib.error.URLError, TimeoutError, ValueError, KeyError, IndexError, TypeError, OSError) as exc:
             raise AgentFailure(f"model endpoint failed: {type(exc).__name__}; response body omitted") from None
 
 
 def validate_config(config: dict) -> None:
     kind = config.get("type")
-    allowed = {"baseline": {"type", "name"}, "command": {"type", "argv", "timeout"},
+    allowed = {"baseline": {"type", "name"}, "command": {"type", "argv", "timeout", "artifact_hashes"},
                "chat": {"type", "model", "base_url", "api_key_env", "max_tokens", "temperature", "timeout", "input_usd_per_million", "output_usd_per_million"}}
     if kind not in allowed or set(config) - allowed[kind]:
         raise ValueError("invalid agent type or unknown config fields; credentials must use api_key_env")
@@ -225,6 +246,9 @@ def validate_config(config: dict) -> None:
         Baseline(config.get("name"), 0)
     elif kind == "command":
         CommandAgent(config.get("argv"))
+        hashes=config.get('artifact_hashes',{})
+        if not isinstance(hashes,dict) or any(not isinstance(p,str) or not p or not isinstance(h,str) or len(h)!=64 or any(c not in '0123456789abcdef' for c in h) for p,h in hashes.items()):
+            raise ValueError('artifact_hashes must map file paths to SHA256 hex digests')
     else:
         if not isinstance(config.get("model"), str) or not config["model"]:
             raise ValueError("chat model must be specified")
@@ -235,10 +259,10 @@ def validate_config(config: dict) -> None:
             raise ValueError("max_tokens must be 1..32768")
         for key in ("input_usd_per_million", "output_usd_per_million", "temperature"):
             value = config.get(key, 0)
-            if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+            if type(value) not in (int, float) or not finite_number(value) or value < 0:
                 raise ValueError(f"invalid {key}")
     timeout = config.get("timeout", 60)
-    if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 0 < timeout <= 600:
+    if type(timeout) not in (int, float) or not finite_number(timeout) or not 0 < timeout <= 600:
         raise ValueError("timeout must be in (0, 600]")
 
 
@@ -253,6 +277,8 @@ def make_agent(config: dict, seed: int) -> Agent:
 
 class CallBudget:
     def __init__(self, max_calls: int, initial_calls: int = 0, on_attempt=None):
+        if type(max_calls) is not int or max_calls<1 or type(initial_calls) is not int or not 0<=initial_calls<=max_calls:
+            raise ValueError('call budget requires integer bounds')
         self.max_calls = max_calls
         self.calls = initial_calls
         self.on_attempt = on_attempt
@@ -269,11 +295,12 @@ class CallBudget:
                  "seconds": time.monotonic() - started, "estimated_usd": None}
         for key in ("input_tokens", "output_tokens"):
             value = usage[key]
-            if type(value) is not int or value < 0:
+            if type(value) is not int or not 0 <= value <= 2**53:
                 usage[key] = None
         if config["type"] == "baseline":
             usage.update(input_tokens=0, output_tokens=0, estimated_usd=0.0)
         elif (usage["input_tokens"] is not None and usage["output_tokens"] is not None
               and "input_usd_per_million" in config and "output_usd_per_million" in config):
             usage["estimated_usd"] = (usage["input_tokens"] * config["input_usd_per_million"] + usage["output_tokens"] * config["output_usd_per_million"]) / 1_000_000
+            if not finite_number(usage["estimated_usd"]):usage["estimated_usd"]=None
         return reply.decision, usage

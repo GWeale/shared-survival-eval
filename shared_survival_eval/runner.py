@@ -6,13 +6,15 @@ import json
 import math
 import os
 import re
+import shutil
+import secrets
 import statistics
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
 
 from .session_lock import locked
-from .agents import AgentFailure, CallBudget, make_agent, validate_config
+from .agents import AgentFailure, CallBudget, make_agent, validate_config, finite_number
 from .engine import MODES, PROTOCOL, SEATS, SPLITS, Scenario, StationEnv, rng_for
 
 
@@ -43,6 +45,91 @@ def source_hash() -> str:
     return digest.hexdigest()
 
 
+def command_artifacts(plan):
+    """Fingerprint executable argv files plus explicitly declared weight files."""
+    result={}
+    for name,config in plan['agents'].items():
+        if config['type']!='command':continue
+        files={}
+        for index,value in enumerate(config['argv']):
+            candidate=Path(shutil.which(value) or value) if index==0 else Path(value)
+            if candidate.is_file():files[str(candidate.resolve())]=hashlib.sha256(candidate.read_bytes()).hexdigest()
+        for value,expected in config.get('artifact_hashes',{}).items():
+            path=Path(value)
+            actual=hashlib.sha256(path.read_bytes()).hexdigest()
+            if actual!=expected:raise ValueError('declared command artifact digest differs')
+            files[str(path.resolve())]=actual
+        result[name]=files
+    return result
+
+
+def validate_saved_record(record, item, manifest):
+    for key in ('eval','crew','seed','split','rotation','replicate','assignment'):
+        if record.get(key)!=item[key]:raise ValueError('saved episode identity or assignment differs')
+    if record.get('protocol')!=manifest['protocol'] or record.get('communication')!=manifest['communication']:
+        raise ValueError('saved episode protocol differs')
+    attempted=record.get('attempted_calls');calls=record.get('calls')
+    if type(attempted) is not int or attempted<0 or not isinstance(calls,list) or attempted<len(calls):
+        raise ValueError('invalid saved episode call accounting')
+    if manifest['protocol']=='station-v2':
+        from .v2 import Config, StationEnv as Env
+        env=Env(item['eval'],manifest['communication'],Config(**manifest['config']))
+    else:env=StationEnv(item['eval'],manifest['communication'])
+    env.reset(item['seed'],item['split'])
+    if record.get('scenario_hash')!=env.scenario.fingerprint or record.get('scenario')!=json.loads(json.dumps(asdict(env.scenario))):
+        raise ValueError('saved scenario differs from generated scenario')
+    if record.get('status') not in ('complete','error'):raise ValueError('invalid saved episode status')
+    frames=record.get('frames')
+    if not isinstance(frames,list) or not frames:raise ValueError('missing saved frames')
+    expected_calls=[]
+    for frame in frames[:-1]:
+        phases=(['probe'] if manifest['probes'] and frame.get('phase')=='act' else [])+[frame.get('phase')]
+        for phase in phases:
+            expected_calls.extend((frame.get('round'),phase,seat,item['assignment'][seat]) for seat in SEATS)
+    if len(calls)>len(expected_calls) or (record['status']=='complete' and len(calls)!=len(expected_calls)):
+        raise ValueError('saved calls do not match decisions')
+    if attempted not in ({len(calls)} if record['status']=='complete' else {len(calls),len(calls)+1}):
+        raise ValueError('saved attempted calls do not match successful calls')
+    for call,expected in zip(calls,expected_calls):
+        required={'round','phase','seat','agent','input_tokens','output_tokens','seconds','estimated_usd'}
+        if not isinstance(call,dict) or set(call)!=required or tuple(call[k] for k in ('round','phase','seat','agent'))!=expected:
+            raise ValueError('invalid saved call schema or order')
+        for key in ('input_tokens','output_tokens'):
+            v=call[key]
+            if v is not None and (type(v) is not int or not 0<=v<=2**53):raise ValueError('invalid saved token usage')
+        for key in ('seconds','estimated_usd'):
+            v=call[key]
+            if (v is None and key=='seconds') or (v is not None and (not finite_number(v) or v<0)):
+                raise ValueError('invalid saved usage')
+    expected_probes=[c for c in calls if c['phase']=='probe'];probes=record.get('probes')
+    if not isinstance(probes,list) or len(probes)!=len(expected_probes):raise ValueError('invalid saved probe count')
+    for probe,call in zip(probes,expected_probes):
+        if not isinstance(probe,dict) or probe.get('round')!=call['round'] or probe.get('seat')!=call['seat'] or 'prediction' not in probe:
+            raise ValueError('invalid saved probe identity')
+        prediction=probe['prediction']
+        if prediction is not None and parse_probe(prediction)!=prediction:raise ValueError('invalid saved probe prediction')
+    for frame in frames[:-1] if record['status']=='complete' else frames[:-2]:
+        if frame.get('round')!=env.round or frame.get('phase')!=env.phase or env.phase=='terminal':
+            raise ValueError('saved frame order differs')
+        decisions=frame.get('decisions')
+        if not isinstance(decisions,dict) or set(decisions)!={'0','1','2','3'}:
+            raise ValueError('invalid saved joint decisions')
+        env.step({int(seat):decision for seat,decision in decisions.items()})
+    if record['status']=='complete':
+        if env.phase!='terminal' or record.get('result')!=env.result():raise ValueError('saved result differs from replay')
+    elif env.phase=='terminal' or 'result' in record:raise ValueError('invalid error episode outcome')
+    if record.get('events')!=json.loads(json.dumps(env.events)):raise ValueError('saved events differ from replay')
+    if record['status']=='complete':
+        resolutions={event['round']:event for event in env.events if event['kind']=='resolution'}
+        for probe in probes:
+            prediction=probe['prediction']
+            if prediction is None:continue
+            survival=(prediction['survival']-int(env.result()['survived']))**2
+            repair=statistics.mean((prediction['repairs'][str(seat)]-int(resolutions[probe['round']]['actions'][seat]=='repair'))**2 for seat in SEATS if seat!=probe['seat'])
+            if probe.get('survival_brier')!=survival or probe.get('repair_brier')!=repair:raise ValueError('saved probe score differs')
+    return attempted
+
+
 def validate_plan(plan: dict) -> None:
     if not isinstance(plan, dict) or set(plan) != {"agents", "crews"}:
         raise ValueError("plan must contain exactly agents and crews")
@@ -64,7 +151,7 @@ def parse_probe(value: object) -> dict | None:
     if not isinstance(value, dict) or not isinstance(value.get("repairs"), dict):
         return None
     probabilities = [value.get("survival")] + [value["repairs"].get(str(s)) for s in SEATS]
-    if any(type(p) not in (float, int) or not math.isfinite(p) or not 0 <= p <= 1 for p in probabilities):
+    if any(type(p) not in (float, int) or not 0 <= p <= 1 or not math.isfinite(p) for p in probabilities):
         return None
     return {"survival": probabilities[0], "repairs": {str(s): probabilities[s + 1] for s in SEATS}}
 
@@ -147,7 +234,20 @@ def interval_by_seed(samples: dict[int, list[float]]) -> list[float] | None:
     return [draws[24], draws[974]]
 
 
-def summarize(records: list[dict]) -> dict:
+def summarize(records: list[dict], manifest: dict | None = None) -> dict:
+    records=list(records)
+    if manifest is not None:
+        def identity(r):return tuple(r[k] for k in ('eval','crew','seed','rotation','replicate'))
+        scheduled={identity(item):item for item in manifest['schedule']}
+        if len(scheduled)!=len(manifest['schedule']):raise ValueError('duplicate schedule identity')
+        present={identity(r) for r in records}
+        if present-set(scheduled):raise ValueError('record not present in schedule')
+        for key,item in scheduled.items():
+            if key not in present:
+                records.append({**item,'status':'missing','protocol':manifest['protocol'],
+                    'communication':manifest['communication'],'scenario':{'config':manifest['config']},
+                    'calls':[],'events':[],'attempted_calls':0})
+
     contexts = {json.dumps([r['protocol'], r.get('split'), r.get('communication'),
                            r.get('scenario', {}).get('config')], sort_keys=True) for r in records}
     if len(contexts) > 1:
@@ -202,7 +302,7 @@ def summarize(records: list[dict]) -> dict:
                               'mean_delivered_value': statistics.mean(sum(r['result']['cargo']) if r['result']['survived'] else 0 for r in group)}
                              for rotation in sorted({r['rotation'] for r in completed})
                              for group in [[r for r in completed if r['rotation'] == rotation]]]
-        row['message_characters'] = sum(len(e['text']) for r in completed for e in r.get('events', []) if e['kind'] == 'message')
+        row['message_characters'] = sum(len(e['text']) for r in entries for e in r.get('events', []) if e['kind'] == 'message')
         commitments = sum(r["result"]["commitments"] for r in completed)
         row["commitment_fulfillment"] = sum(r["result"]["fulfilled"] for r in completed) / commitments if commitments else None
         row["invalid_decisions"] = sum(r["result"]["invalid_decisions"] for r in completed)
@@ -272,9 +372,9 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
               protocol: str = PROTOCOL, difficulty: str = "standard", config: dict | None = None) -> dict:
     validate_plan(plan)
     if (not seeds or len(set(seeds)) != len(seeds) or any(type(s) is not int or s < 0 for s in seeds)
-            or rotations not in range(1, 5) or repeats < 1 or split not in SPLITS
+            or type(rotations) is not int or rotations not in range(1, 5) or type(repeats) is not int or repeats < 1 or split not in SPLITS
             or not modes or len(set(modes)) != len(modes) or any(m not in MODES for m in modes)
-            or communication not in ("full", "public", "none") or max_calls < 1):
+            or communication not in ("full", "public", "none") or type(max_calls) is not int or max_calls < 1):
         raise ValueError("invalid batch settings")
     external = any(c["type"] != "baseline" for c in plan["agents"].values())
     if external and not enable_external:
@@ -288,7 +388,8 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
     manifest = {"protocol": protocol, "difficulty": difficulty, "config": config, "source_hash": source_hash(), "plan": plan, "seeds": seeds,
                 "split": split, "rotations": rotations, "repeats": repeats, "evals": list(modes),
                 "communication": communication, "probes": probes, "max_calls": max_calls,
-                "agent_execution": "external_enabled" if external else "local_baselines"}
+                "agent_execution": "external_enabled" if external else "local_baselines",
+                "command_artifacts":command_artifacts(plan),"training_exclusion":"unverified"}
     manifest['schedule'] = [{'eval': mode, 'crew': crew, 'seed': seed, 'split': split,
                              'rotation': rotation, 'replicate': replicate,
                              'assignment': [plan['crews'][crew][(s-rotation)%4] for s in SEATS]}
@@ -305,6 +406,11 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
             if json.loads((out / "manifest.json").read_text()) != manifest:
                 raise ValueError("resume manifest differs; use a new directory for changed code or settings")
         else:
+            if resume:
+                leftovers=[p for p in out.iterdir() if p.name!='.run.lock']
+                if leftovers and all(p.name.startswith('.writing-') and p.is_file() and not p.is_symlink() for p in leftovers):
+                    recovery=out.parent/(out.name+'.recovered-'+secrets.token_hex(6));recovery.mkdir(mode=0o700)
+                    for p in leftovers:p.rename(recovery/p.name)
             if any(p.name != ".run.lock" for p in out.iterdir()):
                 raise ValueError("new output directory must be empty")
             atomic_json(out / "manifest.json", manifest)
@@ -319,6 +425,14 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
                 raise ValueError("missing saved call budget")
             previous_calls = 0
             atomic_json(budget_path, {"attempted_calls": 0})
+        saved_records={};accounted=0
+        for item in manifest['schedule']:
+            name=f"{item['eval']}--{item['crew']}--s{item['seed']}--r{item['rotation']}--n{item['replicate']}.json"
+            path=out/'episodes'/name
+            if path.exists():
+                record=json.loads(path.read_text())
+                accounted+=validate_saved_record(record,item,manifest);saved_records[name]=record
+        if accounted>previous_calls:raise ValueError('saved budget is below recorded attempts')
         persist_budget = lambda count: atomic_json(budget_path, {"attempted_calls": count})
         budget = CallBudget(max_calls, previous_calls, persist_budget if external else None)
         for mode in modes:
@@ -328,17 +442,14 @@ def run_batch(plan: dict, out: Path, seeds: list[int], *, split: str = "test", r
                         for replicate in range(repeats):
                             name = f"{mode}--{crew}--s{seed}--r{rotation}--n{replicate}.json"
                             path = out / "episodes" / name
-                            if path.exists():
-                                record = json.loads(path.read_text())
-                                if any(record.get(k) != v for k, v in {"protocol": protocol, "eval": mode, "crew": crew, "seed": seed, "split": split,
-                                                                       "rotation": rotation, "replicate": replicate, "communication": communication}.items()):
-                                    raise ValueError("saved episode identity differs from manifest")
+                            if name in saved_records:
+                                record=saved_records[name]
                             else:
                                 record = run_episode(plan, crew, mode, seed, split, rotation, replicate, communication, probes, budget, protocol, difficulty, config)
                                 persist_budget(budget.calls)
                                 atomic_json(path, record)
                             records.append(record)
-        summary = summarize(records)
+        summary = summarize(records, manifest)
         summary["protocol"] = protocol
         summary["manifest"] = manifest
         summary["budget"] = {"attempted_calls": budget.calls, "max_calls": max_calls,

@@ -120,19 +120,13 @@ class RunnerTests(unittest.TestCase):
 
     def test_http_payload_is_only_seat_observation_and_env_key_not_logged(self):
         observed = {}
-        class Response:
-            def __enter__(self): return self
-            def __exit__(self, *args): return False
-            def read(self, limit):
-                return json.dumps({"choices": [{"message": {"content": '{"action":"repair"}'}}], "usage": {"prompt_tokens": 30, "completion_tokens": 7}}).encode()
-        class Opener:
-            def open(self, request, timeout):
-                observed["body"] = json.loads(request.data)
-                observed["auth"] = request.get_header("Authorization")
-                return Response()
+        def transport(argv,payload,timeout,limit):
+            request=json.loads(payload)
+            observed['body']=request['body'];observed['auth']=request['headers']['Authorization']
+            return 0,json.dumps({"choices":[{"message":{"content":'{"action":"repair"}'}}],"usage":{"prompt_tokens":30,"completion_tokens":7}})
         env = StationEnv()
         obs = env.reset()[1]
-        with patch("urllib.request.build_opener", return_value=Opener()), patch.dict(os.environ, {"TEST_MODEL_KEY": "test-only-placeholder"}):
+        with patch("shared_survival_eval.command_io.bounded_command", side_effect=transport), patch.dict(os.environ, {"TEST_MODEL_KEY": "test-only-placeholder"}):
             reply = ChatAgent({"model": "fixture", "api_key_env": "TEST_MODEL_KEY"}).respond(obs, "act")
         self.assertEqual(reply.decision, {"action": "repair"})
         self.assertEqual(reply.input_tokens, 30)

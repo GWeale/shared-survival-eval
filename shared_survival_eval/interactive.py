@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import hmac
+import secrets
 import json
 import sys
 from pathlib import Path
@@ -28,7 +30,7 @@ def create(path: Path, *, mode: str, seed: int, seat: int, model: str) -> dict:
     env.reset(seed, "test")
     state = {"format": "focal-session-v1", "mode": mode, "seed": seed,
              "split": "test", "seat": seat, "model": model,
-             "source_hash": source_hash(), "submissions": []}
+             "source_hash": source_hash(), "session_secret": secrets.token_hex(32), "submissions": []}
     atomic_json(path, state)
     return view(state, env)
 
@@ -45,9 +47,9 @@ def restore(state: dict) -> StationEnv:
 
 def decision_id(state: dict, env: StationEnv) -> str:
     # Opaque, stable IDs allow a retry without advancing a second time.
-    value = [state["model"], state["mode"], state["seed"], state["seat"],
+    value = [state["model"], state["mode"], state["seat"],
              env.round, env.phase, state["source_hash"]]
-    return hashlib.sha256(json.dumps(value).encode()).hexdigest()[:24]
+    return hmac.new(bytes.fromhex(state["session_secret"]), json.dumps(value).encode(), hashlib.sha256).hexdigest()
 
 
 def view(state: dict, env: StationEnv) -> dict:

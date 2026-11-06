@@ -1,0 +1,16 @@
+{
+  "mode": "shared",
+  "seed": 83,
+  "split": "test",
+  "focal": 2,
+  "background": "allocation_common",
+  "config": {
+    "rounds": 6,
+    "repair_delay": 1,
+    "pressure": 0,
+    "sensor_accuracy": 1.0,
+    "integrity": 3,
+    "workload": "joint",
+    "allocation": true
+  }
+}

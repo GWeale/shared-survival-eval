@@ -126,7 +126,7 @@ class JointWorkTests(unittest.TestCase):
         self.assertNotIn('r1-',json.dumps(convention))
         self.assertNotIn('Contract consumes',obs['rules']['commerce'])
         solo=StationEnv();solo.reset()
-        self.assertNotIn('scripted_partner_protocol',request_for(solo.observe(0),'discuss'))
+        self.assertIn('inventory',request_for(solo.observe(0),'discuss')['scripted_partner_protocol']['fields'])
 
     def test_solo_baseline_results_and_action_space_are_preserved(self):
         e=StationEnv();e.reset()

@@ -111,3 +111,9 @@ while True:
 `engine.py` owns rules and visibility. `agents.py` owns policy boundaries and transports. `runner.py` owns matched experiments and reporting. `replay.py` and `viewer.html` own private/omniscient exports. `cli.py` exposes run and replay commands.
 
 See [verification](verification.md) for observed checks and current limitations, and [design](design.md) for the implementation boundaries.
+
+## Resume and training provenance in 0.5
+
+Batch manifests fingerprint executable argv files and optional command `artifact_hashes` (file path to SHA256 hex digest). Declare checkpoint weight files explicitly; a remote model name or undeclared directory does not establish immutable weights. Resume preflights saved scenarios, assignments, replay results, usage/probes and cumulative budget before any new calls. This detects inconsistent evaluator records; it does not authenticate records against an attacker who can rewrite all trusted files.
+
+Use `summarize(records, manifest)` for schedule-based coverage, including wholly missing pairs. Without a manifest, coverage is relative to received records. Checkpoint curves accept a complete `config` through Python and `--allocation` through the CLI. Training exclusion remains unverified unless an external training system supplies and audits its own provenance. Default `reset()` is deterministic test seed 0; training callers must explicitly choose and advance their training seeds and split.
