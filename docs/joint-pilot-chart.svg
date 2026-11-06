@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="660" viewBox="0 0 900 660" role="img" aria-labelledby="title desc">
+<title id="title">Joint-work Astra pilot: shared-reward benefit remains unresolved</title>
+<desc id="desc">Quartermaster delivery 133.875 shared and 129.375 individual. Scout delivery 46.25 shared and 43.75 individual. Both paired 95 percent intervals include zero. All 32 games survived; only 26 completed without infrastructure errors.</desc>
+<style>svg{--shared:#53c7cc;--individual:#e9ac57;--ink:#eff4f8;--muted-ink:#abb8c6;--track:#263746;font-family:system-ui,sans-serif}text{fill:var(--ink)}</style>
+<rect width="900" height="660" fill="#14202b"/>
+<text x="28" y="44" font-size="26" font-weight="700">Shared-reward benefit remains unresolved</text>
+<text x="28" y="75" font-size="16">GPT-6 Astra · high effort · 32 games · eight paired worlds per role</text>
+<text x="28" y="121" font-size="22" font-weight="600">Quartermaster</text>
+<g transform="translate(28,138)">
+<svg width="415" height="156" viewBox="0 0 360 135" role="img" aria-label="quartermaster: shared 133.875, individual 129.375; coordinator 45.625"><text x="0" y="28" fill="var(--ink)" font-size="15">Shared</text><rect x="92" y="12" width="216" height="23" fill="var(--track)"/><rect x="92" y="12" width="180.73125" height="23" fill="var(--shared)"/><text x="315" y="29" fill="var(--ink)" font-size="15">133.9</text><text x="0" y="69" fill="var(--ink)" font-size="15">Individual</text><rect x="92" y="53" width="216" height="23" fill="var(--track)"/><rect x="92" y="53" width="174.65625" height="23" fill="var(--individual)"/><text x="315" y="70" fill="var(--ink)" font-size="15">129.4</text><line x1="153.59375" y1="4" x2="153.59375" y2="84" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 3"/><line x1="92" y1="91" x2="308" y2="91" stroke="var(--muted-ink)"/><text x="92.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">0</text><text x="200.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">80</text><text x="308.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">160</text></svg>
+</g>
+<text x="468" y="121" font-size="22" font-weight="600">Scout</text>
+<g transform="translate(468,138)">
+<svg width="415" height="156" viewBox="0 0 360 135" role="img" aria-label="scout: shared 46.25, individual 43.75; coordinator 45.625"><text x="0" y="28" fill="var(--ink)" font-size="15">Shared</text><rect x="92" y="12" width="216" height="23" fill="var(--track)"/><rect x="92" y="12" width="62.4375" height="23" fill="var(--shared)"/><text x="315" y="29" fill="var(--ink)" font-size="15">46.2</text><text x="0" y="69" fill="var(--ink)" font-size="15">Individual</text><rect x="92" y="53" width="216" height="23" fill="var(--track)"/><rect x="92" y="53" width="59.0625" height="23" fill="var(--individual)"/><text x="315" y="70" fill="var(--ink)" font-size="15">43.8</text><line x1="153.59375" y1="4" x2="153.59375" y2="84" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 3"/><line x1="92" y1="91" x2="308" y2="91" stroke="var(--muted-ink)"/><text x="92.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">0</text><text x="200.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">80</text><text x="308.0" y="111" text-anchor="middle" fill="var(--muted-ink)" font-size="13">160</text></svg>
+</g>
+<text x="28" y="306" font-size="15">Mean team delivery. Dashed reference: scripted coordinator, 45.6.</text>
+<text x="28" y="350" font-size="21" font-weight="600">Shared minus individual: paired 95% intervals</text>
+<text x="28" y="392" font-size="18">Quartermaster +4.50</text>
+<text x="28" y="413" font-size="14">95% interval [-0.25, 9.000]</text>
+<line x1="400.0" y1="375" x2="400.0" y2="407" stroke="#abb8c6" stroke-dasharray="3 3"/>
+<line x1="388.75" y1="392" x2="805.0" y2="392" stroke="#eff4f8" stroke-width="3"/>
+<circle cx="602.5" cy="392" r="6" fill="#eff4f8"/>
+<line x1="388.75" y1="385" x2="388.75" y2="399" stroke="#eff4f8"/>
+<line x1="805.0" y1="385" x2="805.0" y2="399" stroke="#eff4f8"/>
+<text x="28" y="455" font-size="18">Scout +2.50</text>
+<text x="28" y="476" font-size="14">95% interval [0.00, 5.875]</text>
+<line x1="400.0" y1="438" x2="400.0" y2="470" stroke="#abb8c6" stroke-dasharray="3 3"/>
+<line x1="400.0" y1="455" x2="664.375" y2="455" stroke="#eff4f8" stroke-width="3"/>
+<circle cx="512.5" cy="455" r="6" fill="#eff4f8"/>
+<line x1="400.0" y1="448" x2="400.0" y2="462" stroke="#eff4f8"/>
+<line x1="664.375" y1="448" x2="664.375" y2="462" stroke="#eff4f8"/>
+<text x="310.0" y="494" text-anchor="middle" font-size="14">−2</text>
+<text x="400.0" y="494" text-anchor="middle" font-size="14">0</text>
+<text x="625.0" y="494" text-anchor="middle" font-size="14">+5</text>
+<text x="850.0" y="494" text-anchor="middle" font-size="14">+10</text>
+<text x="28" y="539" font-size="17" font-weight="600">32/32 survived · zero invalid game decisions</text>
+<text x="28" y="570" font-size="16">26/32 (81.25%) finished without infrastructure errors; target: 90%.</text>
+<text x="28" y="599" font-size="15">One model rollout per cell. Frozen model play; no RL training or model ranking.</text>
+<text x="28" y="628" font-size="15">The scout’s positive differences occur only in interrupted scenarios.</text>
+</svg>

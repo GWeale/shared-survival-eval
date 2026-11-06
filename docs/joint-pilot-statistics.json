@@ -1,0 +1,544 @@
+{
+  "model": "gpt-6-astra",
+  "roles": {
+    "quartermaster": {
+      "primary_shared_minus_individual": {
+        "n_scenarios": 8,
+        "differences": [
+          1,
+          -1,
+          3,
+          14,
+          -8,
+          12,
+          7,
+          8
+        ],
+        "mean": 4.5,
+        "sd": 7.230886134196436,
+        "ci95": [
+          -0.25,
+          9.0
+        ],
+        "bootstrap_samples": 16777216
+      },
+      "cells": {
+        "shared": {
+          "n": 8,
+          "delivery": [
+            122,
+            151,
+            143,
+            130,
+            123,
+            133,
+            126,
+            143
+          ],
+          "mean_delivery": 133.875,
+          "mean_delivery_given_survival": 133.875,
+          "survived": 8,
+          "mean_focal_reward": 0.15199902488462025,
+          "mean_own_cargo": 56,
+          "mean_completed_orders": 12.375,
+          "mean_team_failed_work_actions": 1.375,
+          "actions": {
+            "work": 91,
+            "give": 96,
+            "fabricate": 99,
+            "wait": 2
+          },
+          "counts": {
+            "responses_verified": 584,
+            "submitted_attempts": 576,
+            "discussions": 288,
+            "explicit_silence": 0,
+            "focal_invalid_decisions": 0,
+            "focal_invalid_events": 0,
+            "work_report_parsed": 166,
+            "maintenance_report_parsed": 288,
+            "focal_work_attempts": 91,
+            "focal_failed_work_actions": 9
+          },
+          "message_fields": {
+            "declared_available_true": 156,
+            "declared_available_false": 132,
+            "omitted_work_map": 122
+          },
+          "exploratory_gain_over_coordinator": {
+            "n_scenarios": 8,
+            "differences": [
+              86,
+              106,
+              93,
+              85,
+              79,
+              97,
+              82,
+              78
+            ],
+            "mean": 88.25,
+            "sd": 9.70640436589604,
+            "ci95": [
+              82.375,
+              94.875
+            ],
+            "bootstrap_samples": 16777216
+          }
+        },
+        "individual": {
+          "n": 8,
+          "delivery": [
+            121,
+            152,
+            140,
+            116,
+            131,
+            121,
+            119,
+            135
+          ],
+          "mean_delivery": 129.375,
+          "mean_delivery_given_survival": 129.375,
+          "survived": 8,
+          "mean_focal_reward": 0.2271182890611507,
+          "mean_own_cargo": 56.75,
+          "mean_completed_orders": 12.125,
+          "mean_team_failed_work_actions": 1.375,
+          "actions": {
+            "work": 93,
+            "give": 98,
+            "fabricate": 96,
+            "wait": 1
+          },
+          "counts": {
+            "responses_verified": 584,
+            "submitted_attempts": 576,
+            "discussions": 288,
+            "explicit_silence": 0,
+            "focal_invalid_decisions": 0,
+            "focal_invalid_events": 0,
+            "work_report_parsed": 175,
+            "maintenance_report_parsed": 288,
+            "focal_work_attempts": 93,
+            "focal_failed_work_actions": 8
+          },
+          "message_fields": {
+            "declared_available_true": 175,
+            "declared_available_false": 113,
+            "omitted_work_map": 113
+          },
+          "exploratory_gain_over_coordinator": {
+            "n_scenarios": 8,
+            "differences": [
+              85,
+              107,
+              90,
+              71,
+              87,
+              85,
+              75,
+              70
+            ],
+            "mean": 83.75,
+            "sd": 12.08008987667606,
+            "ci95": [
+              76.5,
+              92.0
+            ],
+            "bootstrap_samples": 16777216
+          }
+        }
+      },
+      "post_hoc_clean_pairs": {
+        "n_scenarios": 7,
+        "differences": [
+          1,
+          -1,
+          3,
+          14,
+          12,
+          7,
+          8
+        ],
+        "mean": 6.285714285714286,
+        "sd": 5.589105048046175,
+        "ci95": [
+          2.5714285714285716,
+          10.142857142857142
+        ],
+        "bootstrap_samples": 823543,
+        "scenarios": [
+          1,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8
+        ]
+      },
+      "rough_worlds_for_five_point_effect": 17
+    },
+    "scout": {
+      "primary_shared_minus_individual": {
+        "n_scenarios": 8,
+        "differences": [
+          0,
+          7,
+          13,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 2.5,
+        "sd": 4.898979485566356,
+        "ci95": [
+          0.0,
+          5.875
+        ],
+        "bootstrap_samples": 16777216
+      },
+      "cells": {
+        "shared": {
+          "n": 8,
+          "delivery": [
+            47,
+            52,
+            63,
+            47,
+            32,
+            50,
+            30,
+            49
+          ],
+          "mean_delivery": 46.25,
+          "mean_delivery_given_survival": 46.25,
+          "survived": 8,
+          "mean_focal_reward": 0.05251248245876306,
+          "mean_own_cargo": 14.25,
+          "mean_completed_orders": 4.25,
+          "mean_team_failed_work_actions": 1.125,
+          "actions": {
+            "inspect": 22,
+            "work": 23,
+            "cool": 107,
+            "wait": 135,
+            "give": 1
+          },
+          "counts": {
+            "responses_verified": 586,
+            "submitted_attempts": 576,
+            "discussions": 288,
+            "explicit_silence": 0,
+            "focal_invalid_decisions": 0,
+            "focal_invalid_events": 0,
+            "work_report_parsed": 53,
+            "maintenance_report_parsed": 288,
+            "focal_work_attempts": 23,
+            "focal_failed_work_actions": 4
+          },
+          "message_fields": {
+            "declared_available_false": 249,
+            "declared_available_true": 39,
+            "omitted_work_map": 235
+          },
+          "exploratory_gain_over_coordinator": {
+            "n_scenarios": 8,
+            "differences": [
+              11,
+              7,
+              13,
+              2,
+              -12,
+              14,
+              -14,
+              -16
+            ],
+            "mean": 0.625,
+            "sd": 12.715991057382377,
+            "ci95": [
+              -7.875,
+              8.5
+            ],
+            "bootstrap_samples": 16777216
+          }
+        },
+        "individual": {
+          "n": 8,
+          "delivery": [
+            47,
+            45,
+            50,
+            47,
+            32,
+            50,
+            30,
+            49
+          ],
+          "mean_delivery": 43.75,
+          "mean_delivery_given_survival": 43.75,
+          "survived": 8,
+          "mean_focal_reward": 0.10164590976084469,
+          "mean_own_cargo": 13.625,
+          "mean_completed_orders": 4,
+          "mean_team_failed_work_actions": 1.375,
+          "actions": {
+            "inspect": 29,
+            "work": 22,
+            "cool": 96,
+            "wait": 141
+          },
+          "counts": {
+            "responses_verified": 584,
+            "submitted_attempts": 576,
+            "discussions": 288,
+            "explicit_silence": 0,
+            "focal_invalid_decisions": 0,
+            "focal_invalid_events": 0,
+            "work_report_parsed": 49,
+            "maintenance_report_parsed": 288,
+            "focal_work_attempts": 22,
+            "focal_failed_work_actions": 4
+          },
+          "message_fields": {
+            "declared_available_false": 240,
+            "omitted_work_map": 239,
+            "declared_available_true": 48
+          },
+          "exploratory_gain_over_coordinator": {
+            "n_scenarios": 8,
+            "differences": [
+              11,
+              0,
+              0,
+              2,
+              -12,
+              14,
+              -14,
+              -16
+            ],
+            "mean": -1.875,
+            "sd": 11.26863535913479,
+            "ci95": [
+              -9.0,
+              5.375
+            ],
+            "bootstrap_samples": 16777216
+          }
+        }
+      },
+      "post_hoc_clean_pairs": {
+        "n_scenarios": 5,
+        "differences": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 0,
+        "sd": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "bootstrap_samples": 3125,
+        "scenarios": [
+          1,
+          4,
+          6,
+          7,
+          8
+        ]
+      },
+      "rough_worlds_for_five_point_effect": 8
+    }
+  },
+  "controls": [
+    {
+      "control": "coordinator",
+      "focal_role": null,
+      "n_per_mode": 8,
+      "delivery": [
+        36,
+        45,
+        50,
+        45,
+        44,
+        36,
+        44,
+        65
+      ],
+      "mean_delivery": 45.625,
+      "survived": 8,
+      "mean_failed_work_actions": 1
+    },
+    {
+      "control": "focal_local",
+      "focal_role": "quartermaster",
+      "n_per_mode": 8,
+      "delivery": [
+        22,
+        16,
+        13,
+        41,
+        18,
+        24,
+        26,
+        43
+      ],
+      "mean_delivery": 25.375,
+      "survived": 8,
+      "mean_failed_work_actions": 20.875
+    },
+    {
+      "control": "focal_local",
+      "focal_role": "scout",
+      "n_per_mode": 8,
+      "delivery": [
+        24,
+        19,
+        50,
+        34,
+        14,
+        23,
+        44,
+        49
+      ],
+      "mean_delivery": 32.125,
+      "survived": 8,
+      "mean_failed_work_actions": 3
+    },
+    {
+      "control": "local_worker",
+      "focal_role": null,
+      "n_per_mode": 8,
+      "delivery": [
+        0,
+        0,
+        24,
+        27,
+        0,
+        11,
+        14,
+        17
+      ],
+      "mean_delivery": 11.625,
+      "survived": 8,
+      "mean_failed_work_actions": 23.375
+    },
+    {
+      "control": "maintenance",
+      "focal_role": null,
+      "n_per_mode": 8,
+      "delivery": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mean_delivery": 0,
+      "survived": 8,
+      "mean_failed_work_actions": 0
+    },
+    {
+      "control": "reactive_public_pairs",
+      "focal_role": null,
+      "n_per_mode": 8,
+      "delivery": [
+        5,
+        18,
+        6,
+        0,
+        18,
+        12,
+        28,
+        9
+      ],
+      "mean_delivery": 12,
+      "survived": 8,
+      "mean_failed_work_actions": 22.5
+    },
+    {
+      "control": "silent_focal",
+      "focal_role": "quartermaster",
+      "n_per_mode": 8,
+      "delivery": [
+        20,
+        13,
+        6,
+        23,
+        21,
+        24,
+        21,
+        6
+      ],
+      "mean_delivery": 16.75,
+      "survived": 8,
+      "mean_failed_work_actions": 7.375
+    },
+    {
+      "control": "silent_focal",
+      "focal_role": "scout",
+      "n_per_mode": 8,
+      "delivery": [
+        36,
+        19,
+        26,
+        27,
+        14,
+        22,
+        16,
+        32
+      ],
+      "mean_delivery": 24,
+      "survived": 8,
+      "mean_failed_work_actions": 3.625
+    },
+    {
+      "control": "value_blind",
+      "focal_role": null,
+      "n_per_mode": 8,
+      "delivery": [
+        61,
+        45,
+        39,
+        45,
+        44,
+        44,
+        53,
+        62
+      ],
+      "mean_delivery": 49.125,
+      "survived": 8,
+      "mean_failed_work_actions": 1
+    }
+  ],
+  "execution": {
+    "scheduled": 32,
+    "completed": 32,
+    "survived": 32,
+    "incomplete": 0,
+    "infrastructure_clean": 26,
+    "clean_fraction": 0.8125,
+    "meets_90_percent_clean_target": false,
+    "network_error_episodes": 3,
+    "application_restart_episodes": 3,
+    "interface_decision_attempts": 2304,
+    "submit_command_attempts": 2305,
+    "strict_submit_attempt_cap_breaches": 1,
+    "invalid_game_decisions": 0,
+    "explicit_silence": 0,
+    "maintenance_reports_parsed": 1152,
+    "work_reports_parsed": 443,
+    "discussion_decisions": 1152,
+    "provider_usage": null
+  }
+}

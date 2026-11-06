@@ -19,7 +19,7 @@ The existing commands below retain V1. The earlier GPT pilot is not a V2 model r
 
 The experimental [joint workload and research protocol](docs/cooperation-research.md) require paired work orders to earn shared delivery reward. Maintenance alone earns zero. Run `v2 research` to select a viable configuration on validation scenarios and audit a frozen holdout against coordination, selfishness, fixed-schedule, and partner controls. No model inference or RL training is implicit.
 
-[Five-agent council findings and next experiment](docs/council-review.md).
+[Five-agent council review](docs/council-review.md) · [32-game joint-work pilot results](docs/joint-pilot-results.md).
 
 ## Run
 
@@ -48,6 +48,6 @@ The default eval is `shared`. The alternative reward scheme remains available th
 - Survival and objective metrics, resource accounting, and scenario-bootstrap intervals.
 - Offline HTML replays and physically redacted seat exports.
 
-External model adapters require explicit opt-in and can incur charges. Keep runtime logs outside Git. The included results cover scripted baselines and an exploratory GPT subscription pilot: 15 of 16 model games completed. No RL training has been performed. See the [pilot results and chart](docs/pilot-results.md) for outcomes and limitations.
+External model adapters require explicit opt-in and can incur charges. Keep runtime logs outside Git. The [V1 subscription pilot](docs/pilot-results.md) completed 15 of 16 model games. The [V2 joint-work pilot](docs/joint-pilot-results.md) completed all 32 Astra games, but the shared-reward benefit remains unresolved and execution reliability missed its target. Both reports include outcomes and limitations. No RL training has been performed.
 
 [Protocol](docs/protocol.md) · [Model adapters, evaluation plans, and RL API](docs/usage.md) · [Verification](docs/verification.md)

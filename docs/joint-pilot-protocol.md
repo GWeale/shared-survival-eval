@@ -1,6 +1,6 @@
 # Frozen joint-work subscription pilot
 
-Status: protocol frozen before model inference; results pending.
+Status: completed with recorded execution interruptions and one command-attempt deviation. See the [32-game results and audit](joint-pilot-results.md). The protocol below preserves the decisions made before inference and the authorized resumption amendment.
 
 This diagnostic uses GPT-6 Astra at high reasoning effort through the existing Codex subscription connection. It schedules 32 fresh-context games: eight concealed scenarios crossed with quartermaster/scout roles and shared/individual rewards. Each focal player has three scripted coordinator partners. The station-v2 joint workload uses the extreme 36-round configuration. Physical worlds and partner policies are matched across reward modes; cell order is randomized within each scenario.
 
