@@ -26,6 +26,16 @@ class JointWorkTests(unittest.TestCase):
         self.assertEqual(best_matching(orders), (32, ('c','d')))
         self.assertEqual(best_matching([]), (0, ()))
 
+    def test_observation_metadata_cannot_mutate_other_players_rules(self):
+        from shared_survival_eval.work_orders import WORK_RULES
+        e=self.env()
+        original=WORK_RULES['production']
+        try:
+            e.observe(0)['rules']['joint_work']['production']='mutated by player'
+            self.assertEqual(e.observe(1)['rules']['joint_work']['production'],original)
+        finally:
+            WORK_RULES['production']=original
+
     def test_generation_reproducible_and_split_separate(self):
         self.assertEqual(orders_for(1,'test',1), orders_for(1,'test',1))
         self.assertNotEqual(orders_for(1,'test',1), orders_for(1,'train',1))

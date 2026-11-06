@@ -444,5 +444,9 @@
     "validation": 120,
     "holdout": 1000,
     "training_schedule_reference": 1
+  },
+  "audited_revision": {
+    "repository": "GWeale/shared-survival-eval",
+    "commit": "dedb7fdfb4e1e54229d8f82af4c6c07856d57e3f"
   }
 }

@@ -4,7 +4,7 @@ Verified on George’s MacBook Pro with Python 3.13.18. Runtime dependencies: Py
 
 ## Joint-workload verification
 
-The experimental joint workload passes **58 tests per package**. [Research evidence](cooperation-research.md) documents the frozen validation/holdout pass, direct public-CLI checks, per-seat privacy checks, and isolated replay rendering. All five predeclared research gates passed. These are scripted controls; no new GPT or RL-training results are claimed.
+The experimental joint workload passes **59 tests per package**. [Research evidence](cooperation-research.md) documents the frozen validation/holdout pass, direct public-CLI checks, per-seat privacy checks, and isolated replay rendering. All five predeclared research gates passed. These are scripted controls; no new GPT or RL-training results are claimed.
 
 ## Original V2 verification (historical)
 

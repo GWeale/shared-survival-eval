@@ -89,7 +89,7 @@ All predeclared holdout gates passed. The coordinated policy delivered positive 
 
 Replacing one coordinator with a local chooser gave mean team delivery 46.12 in the engineer seat, 30.77 in the operator seat, 23.09 in the quartermaster seat, and 33.14 in the scout seat. The engineer's production-policy intervention had no effect here because maintenance occupied that role. Report roles separately; do not treat these seats as interchangeable or hide the zero-effect result in a single average.
 
-Both repositories pass 58 tests. Public CLI checks exercised both reward modes, joint checkpoint evaluation, and default individual-mode routing. Seat exports were checked for hidden work-order leakage. Four representative replay frames were inspected at 390 and 728 pixels with the isolated renderer. The first display assertion mistakenly searched embedded script source for its own `NaN` literal; limiting it to rendered text passed. No installed local browser was launched.
+Both repositories pass 59 tests. Public CLI checks exercised both reward modes, joint checkpoint evaluation, and default individual-mode routing. Seat exports were checked for hidden work-order leakage. Four representative replay frames were inspected at 390 and 728 pixels with the isolated renderer. The first display assertion mistakenly searched embedded script source for its own `NaN` literal; limiting it to rendered text passed. No installed local browser was launched.
 
 ## Current limits and next acceptance criteria
 
@@ -98,3 +98,5 @@ The joint workload is an experimental benchmark improvement, not a validated int
 Before claiming useful model discrimination, run budget-matched independent model players on concealed seeds with balanced roles, compare homogeneous and unfamiliar-partner crews, retain incomplete runs separately, and report scenario-level uncertainty. Freeze the cases before observing model identities/results. Success means higher shared delivery at acceptable survival, robust to partner changes—not a preselected model order. Training claims additionally require learning curves from actual training checkpoints and held-out partners/worlds.
 
 Implementation review was performed by the task lead; an independent hidden reviewer was unavailable.
+
+The frozen research source is preserved at [shared-survival commit dedb7fd](https://github.com/GWeale/shared-survival-eval/commit/dedb7fdfb4e1e54229d8f82af4c6c07856d57e3f). A subsequent regression fix copies the joint-rule metadata before exposing it to a player, preventing one in-process agent from changing another player’s rule text. The defect was reproduced and the regression now passes. This guard does not change rule content, physical transitions, or reward formulas; the 1,000-episode holdout was not retuned or relabeled as a fresh experiment after this fix.

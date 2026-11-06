@@ -163,7 +163,7 @@ class StationEnv:
         if self.config.workload == 'joint':
             from .work_orders import orders_for, WORK_RULES
             orders = orders_for(self.scenario.seed, self.scenario.split, r + 1)
-            observation['rules']['joint_work'] = WORK_RULES
+            observation['rules']['joint_work'] = copy.deepcopy(WORK_RULES)
             observation['rules']['reward'] = observation['reward'] = WORK_RULES['reward']
             observation['orders'] = [{'id':o.id, 'seats':list(o.seats)} for o in orders]
             observation['private']['work_orders'] = {o.id: {'item':o.items[o.seats.index(seat)], 'value':o.values[o.seats.index(seat)]}
