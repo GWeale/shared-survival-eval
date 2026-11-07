@@ -84,6 +84,26 @@ class Scenario:
     forecasts: tuple[tuple[int, ...], ...]
     recipes: tuple[str, ...]
 
+    def __post_init__(self):
+        if type(self.seed) is not int or self.seed < 0 or self.split not in ('train','validation','test'):
+            raise ValueError('invalid scenario seed or split')
+        if not isinstance(self.config, Config):
+            raise ValueError('scenario config must be Config')
+        rounds=self.config.rounds; waves=(rounds+5)//6
+        def vector(value, length, valid):
+            if not isinstance(value,(tuple,list)) or len(value)!=length or not all(valid(x) for x in value):
+                raise ValueError('invalid scenario dimensions or values')
+            return tuple(value)
+        for name,length,allowed in [('faults',waves,FAULTS),('weather',rounds,range(3)),('recipes',3,PARTS)]:
+            valid=(lambda x: type(x) is int and x in range(3)) if name=='weather' else (lambda x, allowed=allowed: x in allowed)
+            object.__setattr__(self,name,vector(getattr(self,name),length,valid))
+        if set(self.recipes)!=set(PARTS):raise ValueError('recipes must permute parts')
+        for name,length,valid in [('values',rounds,lambda x:type(x) is int and 1<=x<=9),
+                                  ('forecasts',rounds,lambda x:type(x) is int and 1<=x<=9),
+                                  ('items',rounds,lambda x:x in PARTS),('clues',waves,lambda x:x in FAULTS)]:
+            rows=vector(getattr(self,name),4,lambda x:isinstance(x,(tuple,list)))
+            object.__setattr__(self,name,tuple(vector(row,length,valid) for row in rows))
+
     @classmethod
     def generate(cls, seed, split='test', config=None):
         if type(seed) is not int or seed < 0 or split not in ('train', 'validation', 'test'):
@@ -117,7 +137,9 @@ class StationEnv:
         self.scenario = None
 
     def reset(self, seed=0, split='test', *, scenario=None):
-        self.scenario = scenario or Scenario.generate(seed, split, self.config)
+        if scenario is not None and not isinstance(scenario, Scenario):
+            raise ValueError('scenario must be Scenario')
+        self.scenario = scenario if scenario is not None else Scenario.generate(seed, split, self.config)
         self.config = self.scenario.config
         self.round, self.phase = 1, 'discuss'
         self.oxygen, self.power, self.heat, self.coolant = 60, 55, 8, 12

@@ -30,8 +30,8 @@ def exact_repair_oracle(faults, inventory, recipes, delay, deadline):
             'scope':'exact single-engineer repair subproblem; not full-game optimality'}
 
 
-def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared','individual'), rotations=4,
-                   max_calls=1000000, enable_external=False, resume=False, workload="solo"):
+def _learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared','individual'), rotations=4,
+                   max_calls=1000000, enable_external=False, resume=False, workload="solo", allocation=False, config=None):
     """Evaluate supplied training checkpoints; this function never trains a model."""
     if not isinstance(checkpoints,list) or not checkpoints:raise ValueError('checkpoint list required')
     counts=[]
@@ -42,7 +42,7 @@ def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared
         counts.append(n);validate_plan(cp['plan'])
     if counts!=sorted(set(counts)):raise ValueError('checkpoint training counts must be unique and increasing')
     if type(max_calls) is not int or max_calls<len(checkpoints):raise ValueError('call budget too small')
-    config=asdict(replace(Config.tier(difficulty),workload=workload))
+    config=asdict(Config(**config) if config is not None else replace(Config.tier(difficulty),workload=workload,allocation=allocation))
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     manifest={'source_hash':source_hash(),'checkpoints':checkpoints,'seeds':seeds,'difficulty':difficulty,
               'config':config,'modes':list(modes),'rotations':rotations,'max_calls':max_calls,'enable_external':enable_external}
@@ -59,6 +59,13 @@ def learning_curve(checkpoints, out, *, seeds, difficulty='hard', modes=('shared
         rows.append({'training_episodes':cp['training_episodes'],'rows':summary['rows'],'budget':summary['budget'], 'paired_comparisons':summary['paired_comparisons'],
                      'plan_sha256':__import__('hashlib').sha256(json.dumps(cp['plan'],sort_keys=True).encode()).hexdigest()})
     result={'protocol':'station-v2','rows':rows,'training':'Checkpoints supplied by caller; no training performed by evaluator.',
-            'uncertainty':'Scenario-block bootstrap in each row; same held-out seeds and seat rotations at every checkpoint.'}
+            'uncertainty':'Scenario-block bootstrap in each row; same test-labeled seeds and seat rotations at every checkpoint; training exclusion is unverified.'}
     atomic_json(out/'learning-curve.json',result)
     return result
+
+
+def learning_curve(checkpoints, out, **kwargs):
+    from .session_lock import locked
+    target=Path(out).resolve()
+    with locked(target.parent/(target.name+'.curve.lock')):
+        return _learning_curve(checkpoints,out,**kwargs)

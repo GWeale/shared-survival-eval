@@ -1,6 +1,8 @@
 """V2 batch evaluation and private simultaneous-player sessions."""
 import argparse
 import hashlib
+import hmac
+import secrets
 import json
 import os
 import sys
@@ -23,8 +25,9 @@ def restore(state):
 
 def envelope(state, env, seat):
     if type(seat) is not int or seat not in range(4):raise ValueError('seat must be 0..3')
+    if state['focal'] is not None and seat != state['focal']:raise ValueError('only focal seat is visible')
     if env.phase=='terminal':return {'done':True,'observation':env.observe(seat),'reward':env.result()['rewards'][seat]}
-    token=hashlib.sha256(f"{state['source_hash']}:{state['seed']}:{state['mode']}:{state['config']}:{len(state['turns'])}:{seat}".encode()).hexdigest()[:24]
+    token=hmac.new(bytes.fromhex(state["session_secret"]), f"{len(state['turns'])}:{seat}".encode(), hashlib.sha256).hexdigest()
     return {'done':False,'waiting':str(seat) in state['pending'],'decision_id':token,**request_for(env.observe(seat),env.phase)}
 
 
@@ -40,7 +43,7 @@ def create(path, *, mode='shared', seed=0, split='test', difficulty='standard', 
     env=StationEnv(mode,communication,config);env.reset(seed,split)
     state={'protocol':'station-v2','source_hash':source_hash(),'mode':mode,'seed':seed,'split':split,
            'communication':communication,'config':asdict(config),'focal':focal,'background':background,
-           'turns':[],'pending':{},'accepted':{}}
+           'session_secret':secrets.token_hex(32),'turns':[],'pending':{},'accepted':{}}
     atomic_json(path,state)
     return {'created':True,'seats':list(range(4)) if focal is None else [focal]}
 
@@ -93,6 +96,7 @@ def main(argv=None, default_mode='shared'):
     run.add_argument('--enable-external',action='store_true');run.add_argument('--resume',action='store_true')
     for flag,kind in [('rounds',int),('repair-delay',int),('pressure',int),('sensor-accuracy',float),('integrity',int)]:run.add_argument('--'+flag,type=kind)
     curve=commands.add_parser('curve')
+    curve.add_argument('--allocation',action='store_true')
     curve.add_argument('--workload',choices=['solo','joint'],default='solo')
     curve.add_argument('--checkpoints',type=Path,required=True);curve.add_argument('--out',type=Path,required=True)
     curve.add_argument('--seeds',type=int,default=100);curve.add_argument('--seed-start',type=int,default=10000)
@@ -124,7 +128,7 @@ def main(argv=None, default_mode='shared'):
             from .v2_experiments import learning_curve
             if args.seeds<1 or args.seed_start<0:raise ValueError('invalid seed range')
             result=learning_curve(json.loads(args.checkpoints.read_text()),args.out,seeds=list(range(args.seed_start,args.seed_start+args.seeds)),
-                difficulty=args.difficulty,rotations=args.rotations,max_calls=args.max_calls,enable_external=args.enable_external,resume=args.resume,workload=args.workload)
+                difficulty=args.difficulty,rotations=args.rotations,max_calls=args.max_calls,enable_external=args.enable_external,resume=args.resume,workload=args.workload,allocation=args.allocation)
             print(json.dumps({'checkpoints':len(result['rows']),'out':str(args.out)}))
             return 2 if any(row['errors'] for cp in result['rows'] for row in cp['rows']) else 0
         if args.command=='run':
@@ -144,7 +148,8 @@ def main(argv=None, default_mode='shared'):
         elif args.command=='submit':result=submit(args.state,args.seat,json.load(sys.stdin))
         else:
             state=json.loads(args.state.read_text());env=restore(state)
-            result=envelope(state,env,args.seat) if args.command=='observe' else env.observe(args.seat)
+            view=envelope(state,env,args.seat)
+            result=view if args.command=='observe' else env.observe(args.seat)
         print(json.dumps(result,allow_nan=False));return 0
     except (ValueError,OSError,KeyError) as exc:
         print(f'Error: {exc}',file=sys.stderr);return 2

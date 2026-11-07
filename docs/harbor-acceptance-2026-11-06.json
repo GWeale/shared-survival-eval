@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-06",
+  "sources": {
+    "GWeale/shared-survival-eval": {
+      "commit": "8368b4473d1a03260a8afc3bf812b535abe8c94d",
+      "source_hash": "eb31f93678da457a3135a3d2b0fb6548cafdb33c915d4c53d79313e0e2e8b0b0"
+    },
+    "GWeale/individual-incentives-eval": {
+      "commit": "57a8e08cba7338459e36b08fd4a2246a1a0f76b1",
+      "source_hash": "ced31e19cf593579bcbdca42dfb507a080a79ee3c30cd30e80c7d9be3c9eb7fd"
+    }
+  },
+  "harbor_pin": "ff2a1ef48070a8df374669138e4d4db79b77f013",
+  "base_image": "python:3.13-slim@sha256:09a17cad02668ae61ece136b4fd36ac3849e14f670ebedb637ea3e15580525bc",
+  "versions": {
+    "harbor": "0.25.0",
+    "task_schema": "1.4",
+    "host_python": "3.14.4",
+    "docker": "29.1.3",
+    "compose": "2.40.3+ds1-0ubuntu1",
+    "buildx": "0.38.2"
+  },
+  "cases": [
+    {
+      "name": "A_shared_plain_then_oracle",
+      "expected_reward": 1.0,
+      "accepted_reward": 1.0,
+      "decision_count": 12,
+      "terminal_survival": true,
+      "verifier_status": "separate_clean_accepted",
+      "host_replay": "agrees"
+    },
+    {
+      "name": "B_individual_plain_then_oracle",
+      "expected_reward": 1.0,
+      "accepted_reward": 1.0,
+      "decision_count": 12,
+      "terminal_survival": true,
+      "verifier_status": "separate_clean_accepted",
+      "host_replay": "agrees"
+    },
+    {
+      "name": "C_shared_plain_only",
+      "expected_reward": null,
+      "accepted_reward": null,
+      "decision_count": 0,
+      "terminal": false,
+      "verifier_status": "separate_clean_rejected_incomplete_no_reward",
+      "host_replay": "rejected_invalid_transcript_length"
+    }
+  ],
+  "all_cases": {
+    "canonical_station_artifact_status": "collected_ok_source_hash_matches",
+    "untrusted_artifact_ingestion_status": "collected_ok_three_regular_forged_999_files_verified",
+    "symlinks_in_collected_artifacts": false
+  },
+  "resource_caps": {
+    "main_station_verifier_each": {
+      "cpus": 1,
+      "memory_bytes": 1073741824
+    },
+    "station_caps_from_export": true,
+    "run_level_override": false,
+    "harbor_egress_control_sidecars": "uncapped_upstream_defaults"
+  },
+  "limitations": [
+    "Three deterministic development fixtures, seed 83; no broader security, certification, SOTA or training conclusion"
+  ],
+  "cleanup": {
+    "own_containers_remaining": 0,
+    "own_networks_remaining": 0,
+    "temporary_plugin_configs_removed": true,
+    "existing_services_networks_preserved": true,
+    "prior_evidence_files_unchanged": 4322,
+    "shared_caches_pruned": false
+  },
+  "execution_through_cleanup_seconds": 242.057
+}

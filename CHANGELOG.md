@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — November 6, 2026
+
+- Add a pinned Harbor focal-task exporter, isolated station RPC and separate replay verifier.
+- Verify both reward modes and rejection of forged-only evidence through actual Harbor; bound each game workload to 1 CPU / 1 GiB.
+- Replace seed-derived session IDs with secret-backed tokens; enforce focal observation boundaries.
+- Validate custom scenarios, numeric input, checkpoint configuration, usage and replay consistency.
+- Freeze command file identities and declared artifact hashes; reject rewound budgets before new calls.
+- Serialize entire checkpoint curves; preserve interrupted initialization writes during recovery.
+- Enforce overall HTTP deadlines; preserve failed-run communication costs and scheduled coverage.
+
+Existing sessions/manifests require their original code. Generate new task bundles for this version. See the audit for validation limits.
+
 ## 0.4.0 — November 6, 2026
 
 - Add the opt-in allocation-v1 incentive diagnostic, exact payoff certificate and partner cross-play plans.
