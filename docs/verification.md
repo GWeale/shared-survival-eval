@@ -1,8 +1,14 @@
 # Verification
 
-Verified on George’s MacBook Pro with Python 3.13.18. Runtime dependencies: Python standard library. These checks concern the implementation and scripted controls, not learned model capability.
+Runtime dependencies are limited to the Python standard library. These checks concern implementation and scripted controls; they do not establish learned model capability.
 
-## Council follow-up verification
+## Current 0.5 validation — November 6, 2026
+
+Both packages passed **85 tests on Python 3.11.18 and 3.13.18** in isolated macOS environments. Each package also built and installed successfully, and its installed CLI generated the allocation certificate from outside the source checkout. This executes the declared workflow commands locally; it does not substitute for evidence of a GitHub-hosted Linux run. The [validation record](merge-validation-2026-11-06.json) contains tested commits, versions and outcomes.
+
+The [Harbor acceptance record](harbor-acceptance-2026-11-06.json) covers actual container execution of both reward modes, successful collection of forged agent files without reward substitution, and rejection of incomplete play. The [twenty-review audit](harness-audit-2026-11-06.md) explains the fixes and research limits. The source fingerprints remain identical to the executed Harbor revisions; subsequent changes only update documentation.
+
+## Council follow-up verification (historical)
 
 Both packages pass **60 tests** after disclosing scripted partners’ message convention and correcting joint commerce instructions. The [council report](council-review.md) records five independent reviews, reproduced controls, and the next experiment. No model gameplay or training was run.
 

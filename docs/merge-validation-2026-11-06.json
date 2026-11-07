@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-06",
+  "platform": "macOS arm64",
+  "scope": "Local execution of the declared Python matrix and workflow commands; not a GitHub-hosted Linux run",
+  "commands": [
+    "python -m unittest discover -s tests -v",
+    "python -m pip install --no-deps .",
+    "<installed-package-cli> v2 allocation-certificate"
+  ],
+  "rows": [
+    {
+      "repository": "GWeale/shared-survival-eval",
+      "tested_commit": "71f645ebd2b4aeb7200b64b5080f1b37b9cde28b",
+      "python": "3.11.18",
+      "test_count": 85,
+      "tests": "passed",
+      "package_install": "passed",
+      "installed_cli_certificate": "passed",
+      "cli_working_directory": "outside_source_checkout"
+    },
+    {
+      "repository": "GWeale/shared-survival-eval",
+      "tested_commit": "71f645ebd2b4aeb7200b64b5080f1b37b9cde28b",
+      "python": "3.13.18",
+      "test_count": 85,
+      "tests": "passed",
+      "package_install": "passed",
+      "installed_cli_certificate": "passed",
+      "cli_working_directory": "outside_source_checkout"
+    },
+    {
+      "repository": "GWeale/individual-incentives-eval",
+      "tested_commit": "f7bb23aca2e4265a40afc0cc9b05079e113f9f8f",
+      "python": "3.11.18",
+      "test_count": 85,
+      "tests": "passed",
+      "package_install": "passed",
+      "installed_cli_certificate": "passed",
+      "cli_working_directory": "outside_source_checkout"
+    },
+    {
+      "repository": "GWeale/individual-incentives-eval",
+      "tested_commit": "f7bb23aca2e4265a40afc0cc9b05079e113f9f8f",
+      "python": "3.13.18",
+      "test_count": 85,
+      "tests": "passed",
+      "package_install": "passed",
+      "installed_cli_certificate": "passed",
+      "cli_working_directory": "outside_source_checkout"
+    }
+  ],
+  "unique_tests_per_package": 85,
+  "source_changes_since_test": "documentation only"
+}
